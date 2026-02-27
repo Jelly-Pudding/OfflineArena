@@ -49,14 +49,11 @@ public class TokenRewardManager {
 
             simpleVote.getTokenManager().addTokens(uuid, reward);
 
-            // Action-bar feedback (non-intrusive)
             player.sendActionBar(
                 Component.text("+" + reward + " tokens ", NamedTextColor.GOLD)
-                    .append(Component.text("| Dead Zone - ", NamedTextColor.DARK_GRAY))
+                    .append(Component.text("| Dead Zone  ", NamedTextColor.DARK_GRAY))
                     .append(Component.text(zone.getCurrentPhase().getDisplayName(),
                         zone.getCurrentPhase().getTextColor()))
-                    .append(Component.text(" | Radius: " + String.format("%.0f", zone.getCurrentRadius()),
-                        NamedTextColor.GRAY))
             );
         }
 

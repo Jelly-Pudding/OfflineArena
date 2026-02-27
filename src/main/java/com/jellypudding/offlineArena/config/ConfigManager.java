@@ -31,6 +31,8 @@ public class ConfigManager {
     public double getShrinkAmountMax()      { return config.getDouble("zone.shrink-amount-max", 5.0); }
     public int    getRespawnDelayMin()      { return config.getInt("zone.respawn-delay-min", 600); }
     public int    getRespawnDelayMax()      { return config.getInt("zone.respawn-delay-max", 1800); }
+    public int    getCollapseDelayMin()     { return config.getInt("zone.collapse-delay-min", 20); }
+    public int    getCollapseDelayMax()     { return config.getInt("zone.collapse-delay-max", 45); }
     public boolean isAutoStart()            { return config.getBoolean("zone.auto-start", true); }
 
     // Tokens

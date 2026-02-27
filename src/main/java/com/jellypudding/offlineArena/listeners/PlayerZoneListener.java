@@ -4,6 +4,7 @@ import com.jellypudding.offlineArena.OfflineArena;
 import com.jellypudding.offlineArena.zone.DeadZone;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,7 +26,6 @@ public class PlayerZoneListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
-        // Skip if only head-rotation changed (no block movement)
         if (event.getFrom().getBlockX() == event.getTo().getBlockX()
                 && event.getFrom().getBlockZ() == event.getTo().getBlockZ()
                 && event.getFrom().getBlockY() == event.getTo().getBlockY()) return;
@@ -49,10 +49,11 @@ public class PlayerZoneListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
+        Player p = event.getPlayer();
         DeadZone zone = plugin.getZoneManager().getActiveZone();
         if (zone != null) {
-            zone.removePlayer(event.getPlayer().getUniqueId());
-            plugin.getZoneManager().removePlayerFromBossBar(event.getPlayer());
+            zone.removePlayer(p.getUniqueId());
+            plugin.getZoneManager().removePlayerFromBossBar(p);
         }
     }
 
@@ -60,8 +61,7 @@ public class PlayerZoneListener implements Listener {
     public void onPlayerRespawn(PlayerRespawnEvent event) {
         DeadZone zone = plugin.getZoneManager().getActiveZone();
         if (zone == null) return;
-        // Respawn happens before the player actually moves there, so re-check after 1 tick
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!event.getPlayer().isOnline()) return;
             boolean inside = zone.isInside(event.getPlayer().getLocation());
             boolean was    = zone.getPlayersInZone().contains(event.getPlayer().getUniqueId());
@@ -96,10 +96,12 @@ public class PlayerZoneListener implements Listener {
         player.sendMessage(Component.text("You have entered the Dead Zone.", NamedTextColor.RED));
         player.playSound(player.getLocation(), Sound.AMBIENT_CAVE, 0.7f, 0.4f);
         plugin.getZoneManager().addPlayerToBossBar(player);
+        plugin.getVelocityGuardManager().enableFlightEnforcement(player);
     }
 
     private void notifyLeave(Player player) {
         player.sendMessage(Component.text("You have left the Dead Zone.", NamedTextColor.GRAY));
         plugin.getZoneManager().removePlayerFromBossBar(player);
+        plugin.getVelocityGuardManager().disableFlightEnforcement(player);
     }
 }

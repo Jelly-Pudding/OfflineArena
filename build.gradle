@@ -17,7 +17,8 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly files('libs/SimpleVote-2.5.jar')
-    compileOnly(files("libs/BasicDiscordRelay-1.2.0.jar"))
+    compileOnly files('libs/BasicDiscordRelay-1.2.0.jar')
+    compileOnly files('libs/VelocityGuard-2.1.jar')
 }
 
 tasks {

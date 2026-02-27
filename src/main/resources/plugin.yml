@@ -5,7 +5,7 @@ api-version: '1.21'
 description: "Plugin for minecraftoffline.net that produces a shrinking token-reward zone where mob spawns decrease as more players enter."
 author: AlphaAlex115
 website: www.minecraftoffline.net
-depend: [SimpleVote]
+depend: [SimpleVote, VelocityGuard]
 softdepend: [DiscordRelay]
 commands:
   offlinearena:

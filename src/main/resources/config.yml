@@ -22,6 +22,11 @@ zone:
   shrink-amount-min: 2.0
   shrink-amount-max: 5.0
 
+  # Range (seconds) the zone lingers at minimum radius before fully collapsing.
+  # A random value is picked in this range each cycle.
+  collapse-delay-min: 20
+  collapse-delay-max: 45
+
   # Time range (seconds) before the zone reopens after collapsing
   respawn-delay-min: 600
   respawn-delay-max: 1800

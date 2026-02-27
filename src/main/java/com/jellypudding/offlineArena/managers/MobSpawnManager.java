@@ -30,10 +30,10 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- *   AWAKENING    — The Drifter / The Lurker / Loot Goblin
- *   INTENSIFYING — The Marauder / The Marksman / The Hunter
- *   CRITICAL     — The Anarchist / The Alchemist / The Reaper
- *   COLLAPSE     — The Warlord / The Psychopath / The Void (Wither)
+ *   AWAKENING    — The Vagabond / The Lurker / Loot Goblin / The Shade
+ *   INTENSIFYING — The Marauder / The Marksman / The Hunter / The Spectre
+ *   CRITICAL     — The Defiler / The Alchemist / The Reaper / The Wraith
+ *   COLLAPSE     — The Warlord / The Psychopath / The Void (Wither) / The Banshee
  */
 public class MobSpawnManager {
 
@@ -54,7 +54,6 @@ public class MobSpawnManager {
         int capacity  = plugin.getConfigManager().getPlayerCapacity();
         int baseMax   = plugin.getConfigManager().getBaseSpawnCount();
 
-        // Linear inverse scale: empty zone --> baseMax mobs; at-capacity zone --> ~1 mob
         double occupancy = Math.min(1.0, (double) playersIn / Math.max(1, capacity));
         int    baseSpawn = (int) Math.max(1, Math.round(baseMax * (1.0 - occupancy * 0.85)));
         int    toSpawn   = (int) Math.ceil(baseSpawn * zone.getCurrentPhase().getMobPhaseMultiplier());
@@ -74,8 +73,8 @@ public class MobSpawnManager {
             if (witherCount >= plugin.getConfigManager().getMaxWithers()) {
                 Location loc = randomLocationInZone(zone);
                 if (loc == null) return;
-                String fallback = random.nextBoolean() ? "WARLORD" : "PSYCHOPATH";
-                Entity mob = buildMob(loc, fallback);
+                String[] fallback = {"WARLORD", "PSYCHOPATH", "BANSHEE"};
+                Entity mob = buildMob(loc, fallback[random.nextInt(fallback.length)]);
                 if (mob != null) tag(mob, zone);
                 return;
             }
@@ -96,40 +95,43 @@ public class MobSpawnManager {
 
     private String randomMobType(ZonePhase phase) {
         String[] pool = switch (phase) {
-            case AWAKENING    -> new String[]{"DRIFTER", "LURKER", "LOOT_GOBLIN"};
-            case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER"};
-            case CRITICAL     -> new String[]{"ANARCHIST", "ALCHEMIST", "REAPER"};
-            case COLLAPSE     -> new String[]{"WARLORD", "PSYCHOPATH", "VOID"};
+            case AWAKENING    -> new String[]{"VAGABOND", "LURKER", "LOOT_GOBLIN", "SHADE"};
+            case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER", "Spectre"};
+            case CRITICAL     -> new String[]{"DEFILER", "ALCHEMIST", "REAPER", "WRAITH"};
+            case COLLAPSE     -> new String[]{"WARLORD", "PSYCHOPATH", "VOID", "BANSHEE"};
         };
         return pool[random.nextInt(pool.length)];
     }
 
     private Entity buildMob(Location loc, String type) {
         return switch (type) {
-            case "DRIFTER"    -> spawnDrifter(loc);
+            case "VAGABOND"   -> spawnVagabond(loc);
             case "LURKER"     -> spawnLurker(loc);
             case "LOOT_GOBLIN"-> spawnLootGoblin(loc);
+            case "SHADE"      -> spawnShade(loc);
             case "MARAUDER"   -> spawnMarauder(loc);
             case "MARKSMAN"   -> spawnMarksman(loc);
             case "HUNTER"     -> spawnHunter(loc);
-            case "ANARCHIST"  -> spawnAnarchist(loc);
+            case "Spectre"    -> spawnSpectre(loc);
+            case "DEFILER"    -> spawnDefiler(loc);
             case "ALCHEMIST"  -> spawnAlchemist(loc);
             case "REAPER"     -> spawnReaper(loc);
+            case "WRAITH"     -> spawnWraith(loc);
             case "WARLORD"    -> spawnWarlord(loc);
             case "PSYCHOPATH" -> spawnPsychopath(loc);
             case "VOID"       -> spawnVoid(loc);
+            case "BANSHEE"    -> spawnBanshee(loc);
             default           -> null;
         };
     }
 
     // ═══════════════════════════════════════════════════════════════════════
     // PHASE 1 — AWAKENING
-    // Low HP, minimal gear. Roughly vanilla difficulty.
     // ═══════════════════════════════════════════════════════════════════════
 
-    private Zombie spawnDrifter(Location loc) {
+    private Zombie spawnVagabond(Location loc) {
         Zombie z = summon(loc, EntityType.ZOMBIE);
-        name(z, "The Drifter", NamedTextColor.GREEN, false);
+        name(z, "The Vagabond", NamedTextColor.GREEN, false);
         setHealth(z, 24.0);
         setSpeed(z, 0.26);
         setDamage(z, 4.0);
@@ -172,9 +174,17 @@ public class MobSpawnManager {
         return z;
     }
 
+    private Phantom spawnShade(Location loc) {
+        Phantom p = summon(loc.clone().add(0, 18, 0), EntityType.PHANTOM);
+        name(p, "The Shade", NamedTextColor.GREEN, false);
+        p.setSize(0);
+        setHealth(p, 22.0);
+        setDamage(p, 4.0);
+        return p;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
-    // PHASE 2 — INTENSIFYING  (starting to be threats)
-    // Iron/chain gear, buffs, higher HP. Will punish careless play.
+    // PHASE 2 — INTENSIFYING
     // ═══════════════════════════════════════════════════════════════════════
 
     private Zombie spawnMarauder(Location loc) {
@@ -234,14 +244,23 @@ public class MobSpawnManager {
         return z;
     }
 
+    private Phantom spawnSpectre(Location loc) {
+        Phantom p = summon(loc.clone().add(0, 18, 0), EntityType.PHANTOM);
+        name(p, "The Spectre", NamedTextColor.YELLOW, true);
+        p.setSize(1);
+        setHealth(p, 38.0);
+        setDamage(p, 7.0);
+        addEffect(p, PotionEffectType.SPEED, 0);
+        return p;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
-    // PHASE 3 — CRITICAL (more serious threats)
-    // Diamond-tier. Will kill unarmoured players in 2–3 hits.
+    // PHASE 3 — CRITICAL
     // ═══════════════════════════════════════════════════════════════════════
 
-    private WitherSkeleton spawnAnarchist(Location loc) {
+    private WitherSkeleton spawnDefiler(Location loc) {
         WitherSkeleton ws = summon(loc, EntityType.WITHER_SKELETON);
-        name(ws, "The Anarchist", NamedTextColor.GOLD, true);
+        name(ws, "The Defiler", NamedTextColor.GOLD, true);
         setHealth(ws, 65.0);
         setSpeed(ws, 0.30);
         setDamage(ws, 11.0);
@@ -297,9 +316,24 @@ public class MobSpawnManager {
         return v;
     }
 
+    private Vex spawnWraith(Location loc) {
+        Vex v = summon(loc.clone().add(0, 4, 0), EntityType.VEX);
+        name(v, "The Wraith", NamedTextColor.GOLD, true);
+        setHealth(v, 30.0);
+        setDamage(v, 9.0);
+        v.setCharging(true);
+
+        EntityEquipment eq = v.getEquipment();
+        eq.setItemInMainHand(enchantedItem(Material.IRON_SWORD, "sharpness", 3));
+        noDrops(eq);
+
+        addEffect(v, PotionEffectType.SPEED, 0);
+        addEffect(v, PotionEffectType.INVISIBILITY, 0);
+        return v;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
-    // PHASE 4 — COLLAPSE  (bit of a nightmare)
-    // Netherite-tier and beyond. Withers as well.
+    // PHASE 4 — COLLAPSE
     // ═══════════════════════════════════════════════════════════════════════
 
     private Zombie spawnWarlord(Location loc) {
@@ -362,6 +396,17 @@ public class MobSpawnManager {
         loc.getWorld().strikeLightningEffect(loc.clone().add(2, 0, 0));
         loc.getWorld().strikeLightningEffect(loc.clone().add(-2, 0, 0));
         return w;
+    }
+
+    private Phantom spawnBanshee(Location loc) {
+        Phantom p = summon(loc.clone().add(0, 20, 0), EntityType.PHANTOM);
+        name(p, "The Banshee", NamedTextColor.DARK_RED, true);
+        p.setSize(2);
+        setHealth(p, 58.0);
+        setDamage(p, 12.0);
+        addEffect(p, PotionEffectType.SPEED, 1);
+        addEffect(p, PotionEffectType.STRENGTH, 0);
+        return p;
     }
 
     @SuppressWarnings("unchecked")

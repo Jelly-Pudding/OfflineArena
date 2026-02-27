@@ -8,6 +8,7 @@ import com.jellypudding.offlineArena.managers.DiscordManager;
 import com.jellypudding.offlineArena.managers.MobSpawnManager;
 import com.jellypudding.offlineArena.managers.ParticleManager;
 import com.jellypudding.offlineArena.managers.TokenRewardManager;
+import com.jellypudding.offlineArena.managers.VelocityGuardManager;
 import com.jellypudding.offlineArena.managers.ZoneManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -15,21 +16,23 @@ public final class OfflineArena extends JavaPlugin {
 
     private static OfflineArena instance;
 
-    private ConfigManager      configManager;
-    private DiscordManager     discordManager;
-    private MobSpawnManager    mobSpawnManager;
-    private TokenRewardManager tokenRewardManager;
-    private ParticleManager    particleManager;
-    private ZoneManager        zoneManager;
+    private ConfigManager        configManager;
+    private DiscordManager       discordManager;
+    private VelocityGuardManager velocityGuardManager;
+    private MobSpawnManager      mobSpawnManager;
+    private TokenRewardManager   tokenRewardManager;
+    private ParticleManager      particleManager;
+    private ZoneManager          zoneManager;
 
     @Override
     public void onEnable() {
         instance = this;
 
         saveDefaultConfig();
-        configManager      = new ConfigManager(this);
-        discordManager     = new DiscordManager(this);
-        mobSpawnManager    = new MobSpawnManager(this);
+        configManager        = new ConfigManager(this);
+        discordManager       = new DiscordManager(this);
+        velocityGuardManager = new VelocityGuardManager(this);
+        mobSpawnManager      = new MobSpawnManager(this);
         tokenRewardManager = new TokenRewardManager(this);
         particleManager    = new ParticleManager();
         zoneManager        = new ZoneManager(this);
@@ -55,10 +58,11 @@ public final class OfflineArena extends JavaPlugin {
     }
 
     public static OfflineArena getInstance()           { return instance; }
-    public ConfigManager      getConfigManager()       { return configManager; }
-    public DiscordManager     getDiscordManager()      { return discordManager; }
-    public MobSpawnManager    getMobSpawnManager()     { return mobSpawnManager; }
-    public TokenRewardManager getTokenRewardManager()  { return tokenRewardManager; }
-    public ParticleManager    getParticleManager()     { return particleManager; }
-    public ZoneManager        getZoneManager()         { return zoneManager; }
+    public ConfigManager        getConfigManager()          { return configManager; }
+    public DiscordManager       getDiscordManager()         { return discordManager; }
+    public VelocityGuardManager getVelocityGuardManager()  { return velocityGuardManager; }
+    public MobSpawnManager      getMobSpawnManager()        { return mobSpawnManager; }
+    public TokenRewardManager   getTokenRewardManager()     { return tokenRewardManager; }
+    public ParticleManager      getParticleManager()        { return particleManager; }
+    public ZoneManager          getZoneManager()            { return zoneManager; }
 }

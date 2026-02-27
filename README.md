@@ -6,8 +6,8 @@ Spawns a shrinking cylindrical "Dead Zone" at a random location near world origi
 
 ## Dependencies
 
-- **Required:** [SimpleVote](https://github.com/JellyPudding/SimpleVote) — token economy
-- **Optional:** [DiscordRelay](https://github.com/JellyPudding/DiscordRelay) — zone open/close announcements to Discord
+- **Required:** [SimpleVote](https://github.com/Jelly-Pudding/SimpleVote) - token economy
+- **Optional:** [DiscordRelay](https://github.com/Jelly-Pudding/minecraft-discord-relay) - zone open/close announcements to Discord
 
 ## Commands
 

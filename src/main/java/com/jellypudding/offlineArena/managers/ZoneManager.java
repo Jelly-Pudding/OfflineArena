@@ -31,11 +31,15 @@ public class ZoneManager {
     private BukkitTask tokenTask;
     private BukkitTask particleTask;
     private BukkitTask respawnTask;
+    private BukkitTask collapseAlarmTask;
+    private BukkitTask collapseCloseTask;
 
-    // Per-zone randomised parameters (set fresh on each openZone())
+    // Per-zone randomised parameters
     private double activeShrinkAmount;
     private int    activeShrinkInterval;
     private int    activeSpawnInterval;
+
+    private boolean isCollapsing = false;
 
     private final Random random = new Random();
 
@@ -44,21 +48,18 @@ public class ZoneManager {
     }
 
     public void scheduleInitialZone() {
-        // 10 seconds after enable
         Bukkit.getScheduler().runTaskLater(plugin, this::openZone, 200L);
     }
 
     public void openZone() {
         if (activeZone != null) return;
 
-        // Always use the primary/default world
         if (Bukkit.getWorlds().isEmpty()) {
             plugin.getLogger().warning("No worlds loaded: cannot open Dead Zone.");
             return;
         }
         World world = Bukkit.getWorlds().get(0);
 
-        // Randomise spawn location
         double spawnRadius = plugin.getConfigManager().getSpawnRadius();
         double originX     = plugin.getConfigManager().getOriginX();
         double originZ     = plugin.getConfigManager().getOriginZ();
@@ -68,7 +69,6 @@ public class ZoneManager {
         double cx    = originX + dist * Math.cos(angle);
         double cz    = originZ + dist * Math.sin(angle);
 
-        // Pick randomised zone parameters.
         double rMin = plugin.getConfigManager().getInitialRadiusMin();
         double rMax = plugin.getConfigManager().getInitialRadiusMax();
         double initialRadius = rMin + random.nextDouble() * (rMax - rMin);
@@ -85,9 +85,9 @@ public class ZoneManager {
         int spMax = plugin.getConfigManager().getSpawnIntervalMax();
         activeSpawnInterval = spMin + random.nextInt(Math.max(1, spMax - spMin + 1));
 
+        isCollapsing = false;
         activeZone = new DeadZone(new Location(world, cx, 64, cz), initialRadius);
 
-        // Seed players already standing inside the zone.
         for (Player p : world.getPlayers()) {
             if (activeZone.isInside(p.getLocation())) {
                 activeZone.addPlayer(p.getUniqueId());
@@ -105,6 +105,9 @@ public class ZoneManager {
 
     public void closeZone(boolean natural) {
         if (activeZone == null) return;
+
+        cancelCollapseTasks();
+        isCollapsing = false;
 
         plugin.getMobSpawnManager().clearZoneMobs(activeZone);
         broadcastZoneClose();
@@ -125,25 +128,23 @@ public class ZoneManager {
     }
 
     private void startTasks() {
-        long shrinkTicks  = (long) activeShrinkInterval * 20L;
-        long mobTicks     = (long) activeSpawnInterval * 20L;
-        long tokenTicks   = (long) plugin.getConfigManager().getTokenRewardInterval() * 20L;
+        long shrinkTicks = (long) activeShrinkInterval * 20L;
+        long mobTicks    = (long) activeSpawnInterval  * 20L;
+        long tokenTicks  = (long) plugin.getConfigManager().getTokenRewardInterval() * 20L;
 
-        shrinkTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickShrink, shrinkTicks, shrinkTicks);
-        mobTask    = Bukkit.getScheduler().runTaskTimer(plugin, this::tickMobs,   mobTicks,    mobTicks);
-        tokenTask  = Bukkit.getScheduler().runTaskTimer(plugin, this::tickTokens, tokenTicks,  tokenTicks);
-        particleTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickParticles, 40L, 60L); // every 3 s
+        shrinkTask   = Bukkit.getScheduler().runTaskTimer(plugin, this::tickShrink,    shrinkTicks, shrinkTicks);
+        mobTask      = Bukkit.getScheduler().runTaskTimer(plugin, this::tickMobs,      mobTicks,    mobTicks);
+        tokenTask    = Bukkit.getScheduler().runTaskTimer(plugin, this::tickTokens,    tokenTicks,  tokenTicks);
+        particleTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickParticles, 40L,         40L); // every 2 s
     }
 
     private void tickShrink() {
-        if (activeZone == null) return;
+        if (activeZone == null || isCollapsing) return;
 
-        double shrinkAmount = activeShrinkAmount;
-        double minRadius    = plugin.getConfigManager().getMinRadius();
-        boolean phaseChanged = activeZone.shrink(shrinkAmount);
+        boolean phaseChanged = activeZone.shrink(activeShrinkAmount);
 
-        if (activeZone.getCurrentRadius() <= minRadius) {
-            closeZone(true);
+        if (activeZone.getCurrentRadius() <= plugin.getConfigManager().getMinRadius()) {
+            startCollapse();
             return;
         }
 
@@ -151,17 +152,9 @@ public class ZoneManager {
         updateBossBar();
     }
 
-    private void tickMobs() {
-        if (activeZone != null) plugin.getMobSpawnManager().spawnMobs(activeZone);
-    }
-
-    private void tickTokens() {
-        if (activeZone != null) plugin.getTokenRewardManager().rewardPlayers(activeZone);
-    }
-
-    private void tickParticles() {
-        if (activeZone != null) plugin.getParticleManager().drawZoneBorder(activeZone);
-    }
+    private void tickMobs()      { if (activeZone != null) plugin.getMobSpawnManager().spawnMobs(activeZone); }
+    private void tickTokens()    { if (activeZone != null) plugin.getTokenRewardManager().rewardPlayers(activeZone); }
+    private void tickParticles() { if (activeZone != null) plugin.getParticleManager().drawZoneBorder(activeZone); }
 
     private void cancelTasks() {
         if (shrinkTask   != null) { shrinkTask.cancel();   shrinkTask   = null; }
@@ -170,7 +163,56 @@ public class ZoneManager {
         if (particleTask != null) { particleTask.cancel(); particleTask = null; }
     }
 
+    private void cancelCollapseTasks() {
+        if (collapseAlarmTask != null) { collapseAlarmTask.cancel(); collapseAlarmTask = null; }
+        if (collapseCloseTask != null) { collapseCloseTask.cancel(); collapseCloseTask = null; }
+    }
+
+    private void startCollapse() {
+        isCollapsing = true;
+
+        Bukkit.getServer().broadcast(
+            Component.text("The Dead Zone is collapsing...", NamedTextColor.DARK_RED)
+        );
+
+        // Title + sound for players currently inside
+        for (java.util.UUID uuid : activeZone.getPlayersInZone()) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p == null) continue;
+            p.showTitle(Title.title(
+                Component.text("COLLAPSING", NamedTextColor.DARK_RED).decorate(TextDecoration.BOLD),
+                Component.text("Get out.", NamedTextColor.RED),
+                Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(3), Duration.ofMillis(500))
+            ));
+        }
+
+        // Alarm sounds every 5 seconds during the countdown
+        collapseAlarmTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.playSound(p.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.7f, 0.4f);
+            }
+        }, 0L, 100L);
+
+        int cdMin = plugin.getConfigManager().getCollapseDelayMin();
+        int cdMax = plugin.getConfigManager().getCollapseDelayMax();
+        int delay = cdMin + random.nextInt(Math.max(1, cdMax - cdMin + 1));
+        collapseCloseTask = Bukkit.getScheduler().runTaskLater(plugin, () -> closeZone(true), (long) delay * 20L);
+    }
+
     private void onPhaseChange(ZonePhase phase) {
+        Sound phaseSound = switch (phase) {
+            case INTENSIFYING -> Sound.ENTITY_ELDER_GUARDIAN_AMBIENT;
+            case CRITICAL     -> Sound.ENTITY_ENDER_DRAGON_AMBIENT;
+            case COLLAPSE     -> Sound.ENTITY_WITHER_SPAWN;
+            default           -> Sound.ENTITY_WITHER_AMBIENT;
+        };
+        float phasePitch = switch (phase) {
+            case INTENSIFYING -> 0.8f;
+            case CRITICAL     -> 0.6f;
+            case COLLAPSE     -> 0.5f;
+            default           -> 1.0f;
+        };
+
         for (java.util.UUID uuid : activeZone.getPlayersInZone()) {
             Player p = Bukkit.getPlayer(uuid);
             if (p == null) continue;
@@ -179,28 +221,24 @@ public class ZoneManager {
                 Component.text("The zone is shrinking.", NamedTextColor.GRAY),
                 Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(700))
             ));
-            float pitch = phase == ZonePhase.COLLAPSE ? 0.5f : 1.0f;
-            p.playSound(p.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.9f, pitch);
+            p.playSound(p.getLocation(), phaseSound, 1.0f, phasePitch);
+            if (phase != ZonePhase.AWAKENING) {
+                p.playSound(p.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.7f, phasePitch * 0.8f);
+            }
         }
     }
 
     private void createBossBar() {
-        zoneBossBar = Bukkit.createBossBar(
-            buildBossBarTitle(),
-            org.bukkit.boss.BarColor.GREEN,
-            BarStyle.SOLID
-        );
+        zoneBossBar = Bukkit.createBossBar(buildBossBarTitle(), org.bukkit.boss.BarColor.GREEN, BarStyle.SOLID);
         zoneBossBar.setProgress(1.0);
         zoneBossBar.setVisible(true);
-        // Players are added individually as they enter the zone
     }
 
     private void updateBossBar() {
         if (zoneBossBar == null || activeZone == null) return;
         zoneBossBar.setTitle(buildBossBarTitle());
         zoneBossBar.setColor(activeZone.getCurrentPhase().getBarColor());
-        double progress = Math.max(0.0, Math.min(1.0, activeZone.getShrinkRatio()));
-        zoneBossBar.setProgress(progress);
+        zoneBossBar.setProgress(Math.max(0.0, Math.min(1.0, activeZone.getShrinkRatio())));
     }
 
     private String buildBossBarTitle() {
@@ -233,12 +271,8 @@ public class ZoneManager {
             Component.text("A Dead Zone has opened at " + coord + ".", NamedTextColor.RED)
         );
 
+        // Sound only — no title screen; players will see the title when they enter
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.showTitle(Title.title(
-                Component.text("Dead Zone", NamedTextColor.DARK_RED).decorate(TextDecoration.BOLD),
-                Component.text(coord, NamedTextColor.RED),
-                Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(4), Duration.ofMillis(800))
-            ));
             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.4f, 0.7f);
         }
 
@@ -256,9 +290,21 @@ public class ZoneManager {
             Component.text("The Dead Zone has collapsed.", NamedTextColor.GRAY)
         );
 
+        // Layered dramatic sounds with staggered delays
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.3f, 0.4f);
+            p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.6f, 0.5f);
         }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 0.4f);
+            }
+        }, 15L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 0.3f);
+                p.playSound(p.getLocation(), Sound.AMBIENT_CAVE, 0.7f, 0.3f);
+            }
+        }, 30L);
 
         if (plugin.getConfigManager().isDiscordAnnounceClose()) {
             plugin.getDiscordManager().sendFormatted(
@@ -271,6 +317,7 @@ public class ZoneManager {
 
     public void shutdown() {
         cancelTasks();
+        cancelCollapseTasks();
         if (respawnTask != null) { respawnTask.cancel(); respawnTask = null; }
         if (activeZone  != null) {
             plugin.getMobSpawnManager().clearZoneMobs(activeZone);
