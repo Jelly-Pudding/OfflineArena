@@ -1,0 +1,20 @@
+name: OfflineArena
+version: '1.0-SNAPSHOT'
+main: com.jellypudding.offlineArena.OfflineArena
+api-version: '1.21'
+description: "Plugin for minecraftoffline.net that produces a shrinking token-reward zone where mob spawns decrease as more players enter."
+author: AlphaAlex115
+website: www.minecraftoffline.net
+depend: [SimpleVote]
+softdepend: [DiscordRelay]
+commands:
+  offlinearena:
+    description: "OfflineArena admin commands"
+    usage: "/offlinearena <reload|status|open|close>"
+    aliases: [oa, arena]
+    permission: offlinearena.admin
+    permission-message: "You don't have permission to use this command."
+permissions:
+  offlinearena.admin:
+    description: Allows using OfflineArena admin commands
+    default: op

@@ -1,0 +1,70 @@
+zone:
+  # The zone spawns within spawn-radius blocks of this origin point (in the default world).
+  origin:
+    x: 0
+    z: 0
+
+  # Maximum distance (blocks) from origin that the zone center can appear
+  spawn-radius: 1500
+
+  # Initial radius range (blocks). A random value is picked in this range each spawn
+  initial-radius-min: 100.0
+  initial-radius-max: 200.0
+
+  # Zone collapses when radius shrinks to this value (blocks)
+  min-radius: 15.0
+
+  # Shrink interval range (seconds). How often the zone loses radius
+  shrink-interval-min: 20
+  shrink-interval-max: 45
+
+  # Shrink amount range (blocks removed per tick)
+  shrink-amount-min: 2.0
+  shrink-amount-max: 5.0
+
+  # Time range (seconds) before the zone reopens after collapsing
+  respawn-delay-min: 600
+  respawn-delay-max: 1800
+
+  # Open a zone automatically 10 seconds after the plugin loads
+  auto-start: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+tokens:
+  # Tokens per reward tick at full zone size
+  base-reward: 1
+
+  # Tokens per reward tick at minimum zone size (scales linearly as zone shrinks)
+  max-reward: 3
+
+  # How often players inside receive tokens (seconds)
+  reward-interval: 60
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+mobs:
+  # Mobs spawned per cycle when nobody is inside the zone.
+  # Scales down as players enter; at player-capacity it drops to ~1 per cycle.
+  base-spawn-count: 5
+
+  # The zone is considered "at capacity" at this many players. Mob spawns near-minimal.
+  player-capacity: 10
+
+  # Hard cap on simultaneous zone mobs
+  max-total: 30
+
+  # Spawn interval range (seconds) — a random value is chosen when the zone opens
+  spawn-interval-min: 8
+  spawn-interval-max: 15
+
+  # Max simultaneous Withers allowed in the zone during Collapse phase
+  max-withers: 3
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+discord:
+  # Enable Discord integration
+  enabled: true
+
+  announce-open: true
+  announce-close: true
