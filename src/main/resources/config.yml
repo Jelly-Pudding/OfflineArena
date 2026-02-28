@@ -69,17 +69,17 @@ mobs:
 
   # Mobs spawned per cycle multiplier per phase. Earlier phases are larger so they
   # need higher values to keep the zone feeling populated.
-  phase-multiplier-awakening: 7.0
-  phase-multiplier-intensifying: 2.5
-  phase-multiplier-critical: 1.5
-  phase-multiplier-collapse: 1.0
+  phase-multiplier-awakening: 8.0
+  phase-multiplier-intensifying: 3.5
+  phase-multiplier-critical: 2.2
+  phase-multiplier-collapse: 1.4
 
   # The zone is considered "at capacity" at this many players. Mob spawns near-minimal.
   player-capacity: 20
 
   # Hard cap on simultaneous zone mobs (randomised per zone open)
-  max-total-min: 160
-  max-total-max: 240
+  max-total-min: 200
+  max-total-max: 300
 
   # Spawn interval range (seconds) — a random value is chosen when the zone opens
   spawn-interval-min: 8
@@ -90,7 +90,7 @@ mobs:
 
   # Chance (0.0-1.0) that any given mob spawn is replaced by a ghost mob named after a banned player.
   # Ghost mobs are tougher and drop a lifesteal heart on death.
-  ghost-spawn-chance: 0.05
+  ghost-spawn-chance: 0.03
 
 environment:
   # How often the fire/explosion tick runs (ticks, 20 ticks = 1 second)
@@ -99,27 +99,27 @@ environment:
 
   # Fire blocks placed per tick, by phase (random value picked in range each tick)
   fire-awakening-min: 1
-  fire-awakening-max: 3
-  fire-intensifying-min: 3
-  fire-intensifying-max: 7
-  fire-critical-min: 7
-  fire-critical-max: 12
-  fire-collapse-min: 10
-  fire-collapse-max: 18
+  fire-awakening-max: 4
+  fire-intensifying-min: 4
+  fire-intensifying-max: 9
+  fire-critical-min: 9
+  fire-critical-max: 16
+  fire-collapse-min: 15
+  fire-collapse-max: 25
 
   # Explosions per fire-tick, by phase (random value picked in range each tick)
   explosions-awakening-min: 0
   explosions-awakening-max: 1
-  explosions-intensifying-min: 0
-  explosions-intensifying-max: 2
-  explosions-critical-min: 1
-  explosions-critical-max: 3
-  explosions-collapse-min: 1
-  explosions-collapse-max: 3
+  explosions-intensifying-min: 1
+  explosions-intensifying-max: 3
+  explosions-critical-min: 2
+  explosions-critical-max: 5
+  explosions-collapse-min: 3
+  explosions-collapse-max: 8
 
   # Power range for regular tick explosions (random per explosion)
-  explosion-power-min: 1.5
-  explosion-power-max: 3.0
+  explosion-power-min: 2.0
+  explosion-power-max: 4.0
 
   # Final burst when the zone closes — count and power are each randomised per explosion
   finale-explosions-min: 6

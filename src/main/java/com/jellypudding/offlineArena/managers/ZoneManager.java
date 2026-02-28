@@ -375,7 +375,7 @@ public class ZoneManager {
         String c     = p.getColorCode();
         String phase = c + "Dead Zone §8| " + c + p.name();
         if (isCollapsing) return phase + " §8| §cCollapsing";
-        return phase + " §8| " + c + "shrinks in " + shrinkCountdownSecs + "s";
+        return phase + " §8| " + c + "Shrinks in " + shrinkCountdownSecs + "s";
     }
 
     private void destroyBossBar() {

@@ -20,6 +20,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
+import org.bukkit.entity.Vex;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -592,6 +593,21 @@ public class MobSpawnManager {
         return null;
     }
 
+    private static final String[] GHOST_POSTFIXES = {
+        "'s Ghost", "'s Shadow", "'s Shade", "'s Wraith", "'s Remnant", "'s Spirit", "'s Specter"
+    };
+    private static final String[] GHOST_PREFIXES = {
+        "Ghost of ", "Shadow of ", "Shade of ", "Wraith of ", "Spirit of "
+    };
+
+    private String ghostLabel(String playerName) {
+        if (random.nextBoolean()) {
+            return playerName + GHOST_POSTFIXES[random.nextInt(GHOST_POSTFIXES.length)];
+        } else {
+            return GHOST_PREFIXES[random.nextInt(GHOST_PREFIXES.length)] + playerName;
+        }
+    }
+
     private Entity spawnGhostMob(Location loc, ZonePhase phase) {
         List<org.bukkit.OfflinePlayer> banned = new ArrayList<>(Bukkit.getBannedPlayers());
         if (banned.isEmpty()) return null;
@@ -601,11 +617,18 @@ public class MobSpawnManager {
         EntityType[] types = { EntityType.ZOMBIE, EntityType.SKELETON, EntityType.VINDICATOR };
         LivingEntity mob = summon(loc, types[random.nextInt(types.length)]);
 
-        name(mob, playerName + "'s Ghost", phase.getTextColor(), true);
-        setHealth(mob, 45.0);
-        setSpeed(mob, 0.34);
-        setDamage(mob, 7.0);
-        addEffect(mob, PotionEffectType.GLOWING, 0);
+        name(mob, ghostLabel(playerName), phase.getTextColor(), true);
+
+        double hp, speed, dmg;
+        switch (phase) {
+            case AWAKENING    -> { hp = 30.0; speed = 0.28; dmg = 5.5; }
+            case INTENSIFYING -> { hp = 38.0; speed = 0.31; dmg = 6.5; }
+            case CRITICAL     -> { hp = 48.0; speed = 0.35; dmg = 8.0; }
+            default           -> { hp = 58.0; speed = 0.40; dmg = 10.0; }
+        }
+        setHealth(mob, hp);
+        setSpeed(mob, speed);
+        setDamage(mob, dmg);
 
         EntityEquipment eq = mob.getEquipment();
         if (eq != null) {
@@ -634,6 +657,10 @@ public class MobSpawnManager {
         return entity.getPersistentDataContainer().has(GHOST_MOB_KEY, PersistentDataType.BYTE);
     }
 
+    public void tagExternalMob(Entity mob, DeadZone zone) {
+        tag(mob, zone);
+    }
+
     private double phaseMultiplier(ZonePhase phase) {
         return switch (phase) {
             case AWAKENING    -> plugin.getConfigManager().getPhaseMultiplierAwakening();
@@ -650,6 +677,13 @@ public class MobSpawnManager {
         }
         allSpawnedMobs.clear();
         new ArrayList<>(zone.getZoneMobs()).forEach(zone::untrackMob);
+
+        World world = zone.getCenter().getWorld();
+        if (world != null) {
+            double sweep = zone.getCurrentRadius() + 32;
+            world.getNearbyEntities(zone.getCenter(), sweep, sweep, sweep,
+                    e -> e instanceof Vex).forEach(Entity::remove);
+        }
     }
 
     public boolean isZoneMob(Entity entity) {
