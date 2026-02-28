@@ -47,9 +47,21 @@ public class MobSpawnManager {
     }
 
     public void spawnMobs(DeadZone zone) {
+        Location zoneCenter = zone.getCenter();
+        double   limitR     = zone.getCurrentRadius() * 1.3 + 20;
+
         for (UUID uuid : new java.util.ArrayList<>(zone.getZoneMobs())) {
             org.bukkit.entity.Entity e = plugin.getServer().getEntity(uuid);
-            if (e == null || !e.isValid()) zone.untrackMob(uuid);
+            if (e == null || !e.isValid()) {
+                zone.untrackMob(uuid);
+                continue;
+            }
+            Location ml = e.getLocation();
+            if (ml.getWorld() != null && ml.getWorld().equals(zoneCenter.getWorld())) {
+                double dx = ml.getX() - zoneCenter.getX();
+                double dz = ml.getZ() - zoneCenter.getZ();
+                if (dx * dx + dz * dz > limitR * limitR) zone.untrackMob(uuid);
+            }
         }
 
         int maxTotal = plugin.getZoneManager().getActiveMaxMobs();
@@ -61,7 +73,7 @@ public class MobSpawnManager {
 
         double occupancy    = Math.min(1.0, (double) playersIn / Math.max(1, capacity));
         int    baseSpawn    = (int) Math.max(1, Math.round(baseMax * (1.0 - occupancy * 0.85)));
-        double radiusBonus  = 1.0 + (zone.getShrinkRatio() * 0.8);
+        double radiusBonus  = 1.0 + (zone.getShrinkRatio() * 1.5);
         int    toSpawn      = (int) Math.ceil(baseSpawn * zone.getCurrentPhase().getMobPhaseMultiplier() * radiusBonus);
         toSpawn             = Math.min(toSpawn, maxTotal - zone.getMobCount());
 
@@ -102,8 +114,8 @@ public class MobSpawnManager {
     private String randomMobType(ZonePhase phase) {
         String[] pool = switch (phase) {
             case AWAKENING    -> new String[]{"VAGABOND", "LURKER", "LOOT_GOBLIN", "VAGRANT"};
-            case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER", "RAIDER"};
-            case CRITICAL     -> new String[]{"DEFILER", "ALCHEMIST", "REAPER", "WRAITH"};
+            case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER", "RAIDER", "INCENDIARY"};
+            case CRITICAL     -> new String[]{"DEFILER", "ALCHEMIST", "REAPER", "WRAITH", "HOLLOW"};
             case COLLAPSE     -> new String[]{"WARLORD", "PSYCHOPATH", "VOID", "CONJURER"};
         };
         return pool[random.nextInt(pool.length)];
@@ -123,6 +135,8 @@ public class MobSpawnManager {
             case "ALCHEMIST"  -> spawnAlchemist(loc);
             case "REAPER"     -> spawnReaper(loc);
             case "WRAITH"     -> spawnWraith(loc);
+            case "INCENDIARY" -> spawnIncendiary(loc);
+            case "HOLLOW"     -> spawnHollow(loc);
             case "WARLORD"    -> spawnWarlord(loc);
             case "PSYCHOPATH" -> spawnPsychopath(loc);
             case "VOID"       -> spawnVoid(loc);
@@ -269,6 +283,16 @@ public class MobSpawnManager {
         return p;
     }
 
+    private Blaze spawnIncendiary(Location loc) {
+        Blaze b = summon(loc.clone().add(0, 2, 0), EntityType.BLAZE);
+        name(b, "The Incendiary", NamedTextColor.YELLOW, true);
+        setHealth(b, 45.0);
+        setSpeed(b, 0.28);
+        addEffect(b, PotionEffectType.FIRE_RESISTANCE, 0);
+        addEffect(b, PotionEffectType.STRENGTH, 0);
+        return b;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // PHASE 3 — CRITICAL
     // ═══════════════════════════════════════════════════════════════════════
@@ -345,6 +369,14 @@ public class MobSpawnManager {
         addEffect(v, PotionEffectType.SPEED, 0);
         addEffect(v, PotionEffectType.INVISIBILITY, 0);
         return v;
+    }
+
+    private Ghast spawnHollow(Location loc) {
+        Ghast g = summon(loc.clone().add(0, 8, 0), EntityType.GHAST);
+        name(g, "The Hollow", NamedTextColor.GOLD, true);
+        setHealth(g, 55.0);
+        addEffect(g, PotionEffectType.FIRE_RESISTANCE, 0);
+        return g;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

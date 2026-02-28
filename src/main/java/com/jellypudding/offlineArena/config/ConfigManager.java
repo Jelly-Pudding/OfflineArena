@@ -78,6 +78,8 @@ public class ConfigManager {
     public int   getFinaleExplosionsMax()         { return config.getInt("environment.finale-explosions-max",        14); }
     public double getFinaleExplosionPowerMin()    { return config.getDouble("environment.finale-explosion-power-min", 3.0); }
     public double getFinaleExplosionPowerMax()    { return config.getDouble("environment.finale-explosion-power-max", 6.0); }
+    public double getLightningChanceCritical()    { return config.getDouble("environment.lightning-chance-critical", 0.3); }
+    public double getLightningChanceCollapse()    { return config.getDouble("environment.lightning-chance-collapse", 0.6); }
 
     // Discord
     public boolean isDiscordEnabled()       { return config.getBoolean("discord.enabled", true); }

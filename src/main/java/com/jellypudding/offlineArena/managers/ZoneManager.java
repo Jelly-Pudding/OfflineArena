@@ -70,10 +70,21 @@ public class ZoneManager {
         double originX     = plugin.getConfigManager().getOriginX();
         double originZ     = plugin.getConfigManager().getOriginZ();
 
-        double angle = random.nextDouble() * 2 * Math.PI;
-        double dist  = random.nextDouble() * spawnRadius;
-        double cx    = originX + dist * Math.cos(angle);
-        double cz    = originZ + dist * Math.sin(angle);
+        double cx = originX, cz = originZ;
+        int bestWater = Integer.MAX_VALUE;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            double a  = random.nextDouble() * 2 * Math.PI;
+            double d  = random.nextDouble() * spawnRadius;
+            double tx = originX + d * Math.cos(a);
+            double tz = originZ + d * Math.sin(a);
+            int water = countOceanSamples(world, tx, tz);
+            if (water < bestWater) {
+                bestWater = water;
+                cx = tx;
+                cz = tz;
+                if (water == 0) break;
+            }
+        }
 
         double rMin = plugin.getConfigManager().getInitialRadiusMin();
         double rMax = plugin.getConfigManager().getInitialRadiusMax();
@@ -128,6 +139,11 @@ public class ZoneManager {
 
         cancelCollapseTasks();
         isCollapsing = false;
+
+        for (java.util.UUID uuid : activeZone.getPlayersInZone()) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) plugin.getVelocityGuardManager().disableFlightEnforcement(p);
+        }
 
         plugin.getMobSpawnManager().clearZoneMobs(activeZone);
         broadcastZoneClose();
@@ -219,13 +235,21 @@ public class ZoneManager {
             case COLLAPSE     -> randRange(plugin.getConfigManager().getExplosionsCollapseMin(),     plugin.getConfigManager().getExplosionsCollapseMax());
         };
 
-        double pwrMin = plugin.getConfigManager().getExplosionPowerMin();
-        double pwrMax = plugin.getConfigManager().getExplosionPowerMax();
+        double pwrMin        = plugin.getConfigManager().getExplosionPowerMin();
+        double pwrMax        = plugin.getConfigManager().getExplosionPowerMax();
+        double lightningChance = switch (phase) {
+            case CRITICAL -> plugin.getConfigManager().getLightningChanceCritical();
+            case COLLAPSE -> plugin.getConfigManager().getLightningChanceCollapse();
+            default       -> 0.0;
+        };
         for (int i = 0; i < explosions; i++) {
             Location loc = randomSurfaceInZone(0.7);
             if (loc != null) {
                 float power = (float) (pwrMin + random.nextDouble() * (pwrMax - pwrMin));
                 world.createExplosion(loc, power, true, true);
+                if (lightningChance > 0 && random.nextDouble() < lightningChance) {
+                    world.strikeLightningEffect(loc);
+                }
             }
         }
     }
@@ -304,7 +328,7 @@ public class ZoneManager {
             if (p == null) continue;
             p.showTitle(Title.title(
                 Component.text(phase.getDisplayName(), phase.getTextColor()).decorate(TextDecoration.BOLD),
-                Component.text("The zone is shrinking.", NamedTextColor.GRAY),
+                Component.empty(),
                 Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(700))
             ));
             p.playSound(p.getLocation(), phaseSound, 1.0f, phasePitch);
@@ -379,10 +403,11 @@ public class ZoneManager {
         final World    world     = epicentre.getWorld();
 
         if (world != null) {
-            int    count    = randRange(plugin.getConfigManager().getFinaleExplosionsMin(), plugin.getConfigManager().getFinaleExplosionsMax());
-            double pwrMin   = plugin.getConfigManager().getFinaleExplosionPowerMin();
-            double pwrMax   = plugin.getConfigManager().getFinaleExplosionPowerMax();
-            double scatter  = Math.min(30.0, activeZone.getCurrentRadius());
+            int    count          = randRange(plugin.getConfigManager().getFinaleExplosionsMin(), plugin.getConfigManager().getFinaleExplosionsMax());
+            double pwrMin         = plugin.getConfigManager().getFinaleExplosionPowerMin();
+            double pwrMax         = plugin.getConfigManager().getFinaleExplosionPowerMax();
+            double lightningChance = plugin.getConfigManager().getLightningChanceCollapse();
+            double scatter        = Math.min(30.0, activeZone.getCurrentRadius());
 
             for (int i = 0; i < count; i++) {
                 double a   = random.nextDouble() * 2 * Math.PI;
@@ -390,7 +415,7 @@ public class ZoneManager {
                 float  pwr = (float) (pwrMin + random.nextDouble() * (pwrMax - pwrMin));
                 Location loc = epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a));
                 world.createExplosion(loc, pwr, true, true);
-                if (random.nextFloat() < 0.5f) world.strikeLightningEffect(loc);
+                if (random.nextDouble() < lightningChance) world.strikeLightningEffect(loc);
             }
         }
 
@@ -422,6 +447,17 @@ public class ZoneManager {
                 Color.DARK_GRAY
             );
         }
+    }
+
+    private int countOceanSamples(World world, double cx, double cz) {
+        int count = 0;
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                String biome = world.getBiome((int) cx + dx * 60, 64, (int) cz + dz * 60).getKey().getKey();
+                if (biome.contains("ocean") || biome.equals("river") || biome.equals("frozen_river")) count++;
+            }
+        }
+        return count;
     }
 
     private Location randomSurfaceInZone(double radiusFraction) {

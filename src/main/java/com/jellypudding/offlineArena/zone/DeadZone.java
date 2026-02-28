@@ -83,4 +83,6 @@ public class DeadZone {
     public double    getCurrentRadius() { return currentRadius; }
     public double    getInitialRadius() { return initialRadius; }
     public ZonePhase getCurrentPhase()  { return currentPhase; }
+    public double    getHeightMin()     { return heightMin; }
+    public double    getHeightMax()     { return heightMax; }
 }
