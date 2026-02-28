@@ -47,12 +47,12 @@ public class MobSpawnManager {
     }
 
     public void spawnMobs(DeadZone zone) {
-        int maxTotal = plugin.getConfigManager().getMaxTotalMobs();
+        int maxTotal = plugin.getZoneManager().getActiveMaxMobs();
         if (zone.getMobCount() >= maxTotal) return;
 
         int playersIn = zone.getPlayersInZone().size();
         int capacity  = plugin.getConfigManager().getPlayerCapacity();
-        int baseMax   = plugin.getConfigManager().getBaseSpawnCount();
+        int baseMax   = plugin.getZoneManager().getActiveBaseSpawnCount();
 
         double occupancy = Math.min(1.0, (double) playersIn / Math.max(1, capacity));
         int    baseSpawn = (int) Math.max(1, Math.round(baseMax * (1.0 - occupancy * 0.85)));

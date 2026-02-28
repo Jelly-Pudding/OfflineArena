@@ -41,6 +41,9 @@ public class ZoneManager {
     private double activeShrinkAmount;
     private int    activeShrinkInterval;
     private int    activeSpawnInterval;
+    private int    activeMaxMobs;
+    private int    activeBaseSpawnCount;
+    private long   activeFireInterval;
 
     private boolean isCollapsing = false;
 
@@ -87,6 +90,18 @@ public class ZoneManager {
         int spMin = plugin.getConfigManager().getSpawnIntervalMin();
         int spMax = plugin.getConfigManager().getSpawnIntervalMax();
         activeSpawnInterval = spMin + random.nextInt(Math.max(1, spMax - spMin + 1));
+
+        int mobMin = plugin.getConfigManager().getMaxTotalMobsMin();
+        int mobMax = plugin.getConfigManager().getMaxTotalMobsMax();
+        activeMaxMobs = mobMin + random.nextInt(Math.max(1, mobMax - mobMin + 1));
+
+        int bscMin = plugin.getConfigManager().getBaseSpawnCountMin();
+        int bscMax = plugin.getConfigManager().getBaseSpawnCountMax();
+        activeBaseSpawnCount = bscMin + random.nextInt(Math.max(1, bscMax - bscMin + 1));
+
+        int fiMin = plugin.getConfigManager().getFireIntervalMin();
+        int fiMax = plugin.getConfigManager().getFireIntervalMax();
+        activeFireInterval = fiMin + random.nextInt(Math.max(1, fiMax - fiMin + 1));
 
         isCollapsing = false;
         activeZone = new DeadZone(new Location(world, cx, 64, cz), initialRadius);
@@ -139,7 +154,7 @@ public class ZoneManager {
         mobTask      = Bukkit.getScheduler().runTaskTimer(plugin, this::tickMobs,      mobTicks,    mobTicks);
         tokenTask    = Bukkit.getScheduler().runTaskTimer(plugin, this::tickTokens,    tokenTicks,  tokenTicks);
         particleTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickParticles, 40L,         40L);
-        fireTask     = Bukkit.getScheduler().runTaskTimer(plugin, this::tickFire,      400L,        400L); // every 20s
+        fireTask     = Bukkit.getScheduler().runTaskTimer(plugin, this::tickFire, activeFireInterval, activeFireInterval);
     }
 
     private void tickShrink() {
@@ -162,12 +177,19 @@ public class ZoneManager {
 
     private void tickFire() {
         if (activeZone == null) return;
-        Location center = activeZone.getCenter();
-        World world = center.getWorld();
+        World world = activeZone.getCenter().getWorld();
         if (world == null) return;
 
-        int count = 2 + random.nextInt(3);
-        for (int i = 0; i < count; i++) {
+        ZonePhase phase = activeZone.getCurrentPhase();
+
+        int fireCount = randRange(switch (phase) {
+            case AWAKENING    -> new int[]{plugin.getConfigManager().getFireAwakeningMin(),    plugin.getConfigManager().getFireAwakeningMax()};
+            case INTENSIFYING -> new int[]{plugin.getConfigManager().getFireIntensifyingMin(), plugin.getConfigManager().getFireIntensifyingMax()};
+            case CRITICAL     -> new int[]{plugin.getConfigManager().getFireCriticalMin(),     plugin.getConfigManager().getFireCriticalMax()};
+            case COLLAPSE     -> new int[]{plugin.getConfigManager().getFireCollapseMin(),     plugin.getConfigManager().getFireCollapseMax()};
+        });
+
+        for (int i = 0; i < fireCount; i++) {
             Location loc = randomSurfaceInZone(0.75);
             if (loc == null) continue;
             Block surface = loc.getBlock();
@@ -175,6 +197,18 @@ public class ZoneManager {
             if (surface.getType().isSolid() && above.getType() == Material.AIR) {
                 above.setType(Material.FIRE);
             }
+        }
+
+        int explosions = switch (phase) {
+            case AWAKENING    -> 0;
+            case INTENSIFYING -> randRange(plugin.getConfigManager().getExplosionsIntensifyingMin(), plugin.getConfigManager().getExplosionsIntensifyingMax());
+            case CRITICAL     -> randRange(plugin.getConfigManager().getExplosionsCriticalMin(),     plugin.getConfigManager().getExplosionsCriticalMax());
+            case COLLAPSE     -> 0;
+        };
+
+        for (int i = 0; i < explosions; i++) {
+            Location loc = randomSurfaceInZone(0.7);
+            if (loc != null) world.createExplosion(loc, 2.0f, true, true);
         }
     }
 
@@ -402,7 +436,17 @@ public class ZoneManager {
         destroyBossBar();
     }
 
-    public DeadZone getActiveZone()  { return activeZone; }
-    public boolean  hasActiveZone()  { return activeZone != null; }
-    public BossBar  getZoneBossBar() { return zoneBossBar; }
+    private int randRange(int min, int max) {
+        return min + random.nextInt(Math.max(1, max - min + 1));
+    }
+
+    private int randRange(int[] minMax) {
+        return randRange(minMax[0], minMax[1]);
+    }
+
+    public DeadZone getActiveZone()          { return activeZone; }
+    public boolean  hasActiveZone()          { return activeZone != null; }
+    public BossBar  getZoneBossBar()         { return zoneBossBar; }
+    public int      getActiveMaxMobs()       { return activeMaxMobs; }
+    public int      getActiveBaseSpawnCount(){ return activeBaseSpawnCount; }
 }

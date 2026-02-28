@@ -34,7 +34,6 @@ zone:
   # Open a zone automatically 10 seconds after the plugin loads
   auto-start: true
 
-# ─────────────────────────────────────────────────────────────────────────────
 tokens:
   # Tokens per reward tick at full zone size
   base-reward: 1
@@ -45,18 +44,18 @@ tokens:
   # How often players inside receive tokens (seconds)
   reward-interval: 60
 
-# ─────────────────────────────────────────────────────────────────────────────
-
 mobs:
   # Mobs spawned per cycle when nobody is inside the zone.
   # Scales down as players enter; at player-capacity it drops to ~1 per cycle.
-  base-spawn-count: 8
+  base-spawn-count-min: 12
+  base-spawn-count-max: 16
 
   # The zone is considered "at capacity" at this many players. Mob spawns near-minimal.
   player-capacity: 10
 
-  # Hard cap on simultaneous zone mobs
-  max-total: 90
+  # Hard cap on simultaneous zone mobs (randomised per zone open)
+  max-total-min: 100
+  max-total-max: 140
 
   # Spawn interval range (seconds) — a random value is chosen when the zone opens
   spawn-interval-min: 8
@@ -65,7 +64,26 @@ mobs:
   # Max simultaneous Withers allowed in the zone during Collapse phase
   max-withers: 3
 
-# ─────────────────────────────────────────────────────────────────────────────
+environment:
+  # How often the fire/explosion tick runs (ticks, 20 ticks = 1 second)
+  fire-interval-min: 200
+  fire-interval-max: 400
+
+  # Fire blocks placed per tick, by phase (random value picked in range each tick)
+  fire-awakening-min: 1
+  fire-awakening-max: 3
+  fire-intensifying-min: 3
+  fire-intensifying-max: 7
+  fire-critical-min: 7
+  fire-critical-max: 12
+  fire-collapse-min: 10
+  fire-collapse-max: 18
+
+  # Small explosions (power 2) per tick, by phase. Awakening always 0.
+  explosions-intensifying-min: 0
+  explosions-intensifying-max: 2
+  explosions-critical-min: 1
+  explosions-critical-max: 3
 
 discord:
   # Enable Discord integration

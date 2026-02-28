@@ -41,12 +41,30 @@ public class ConfigManager {
     public int getTokenRewardInterval()  { return config.getInt("tokens.reward-interval", 60); }
 
     // Mobs
-    public int getBaseSpawnCount()      { return config.getInt("mobs.base-spawn-count", 5); }
+    public int getBaseSpawnCountMin()   { return config.getInt("mobs.base-spawn-count-min", 12); }
+    public int getBaseSpawnCountMax()   { return config.getInt("mobs.base-spawn-count-max", 16); }
     public int getPlayerCapacity()      { return config.getInt("mobs.player-capacity", 10); }
-    public int getMaxTotalMobs()        { return config.getInt("mobs.max-total", 30); }
+    public int getMaxTotalMobsMin()     { return config.getInt("mobs.max-total-min", 100); }
+    public int getMaxTotalMobsMax()     { return config.getInt("mobs.max-total-max", 140); }
     public int getSpawnIntervalMin()    { return config.getInt("mobs.spawn-interval-min", 8); }
     public int getSpawnIntervalMax()    { return config.getInt("mobs.spawn-interval-max", 15); }
     public int getMaxWithers()          { return config.getInt("mobs.max-withers", 3); }
+
+    // Environment
+    public int getFireIntervalMin()               { return config.getInt("environment.fire-interval-min", 200); }
+    public int getFireIntervalMax()               { return config.getInt("environment.fire-interval-max", 400); }
+    public int getFireAwakeningMin()              { return config.getInt("environment.fire-awakening-min", 1); }
+    public int getFireAwakeningMax()              { return config.getInt("environment.fire-awakening-max", 3); }
+    public int getFireIntensifyingMin()           { return config.getInt("environment.fire-intensifying-min", 3); }
+    public int getFireIntensifyingMax()           { return config.getInt("environment.fire-intensifying-max", 7); }
+    public int getFireCriticalMin()               { return config.getInt("environment.fire-critical-min", 7); }
+    public int getFireCriticalMax()               { return config.getInt("environment.fire-critical-max", 12); }
+    public int getFireCollapseMin()               { return config.getInt("environment.fire-collapse-min", 10); }
+    public int getFireCollapseMax()               { return config.getInt("environment.fire-collapse-max", 18); }
+    public int getExplosionsIntensifyingMin()     { return config.getInt("environment.explosions-intensifying-min", 0); }
+    public int getExplosionsIntensifyingMax()     { return config.getInt("environment.explosions-intensifying-max", 2); }
+    public int getExplosionsCriticalMin()         { return config.getInt("environment.explosions-critical-min", 1); }
+    public int getExplosionsCriticalMax()         { return config.getInt("environment.explosions-critical-max", 3); }
 
     // Discord
     public boolean isDiscordEnabled()       { return config.getBoolean("discord.enabled", true); }
