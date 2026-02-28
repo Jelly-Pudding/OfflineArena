@@ -288,10 +288,6 @@ public class ZoneManager {
     private void startCollapse() {
         isCollapsing = true;
 
-        Bukkit.getServer().broadcast(
-            Component.text("The Dead Zone is collapsing...", NamedTextColor.DARK_RED)
-        );
-
         collapseAlarmTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickCollapseAlarm, 0L, 100L);
 
         int cdMin = plugin.getConfigManager().getCollapseDelayMin();
