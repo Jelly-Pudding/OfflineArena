@@ -145,6 +145,7 @@ public class ZoneManager {
             if (p != null) plugin.getVelocityGuardManager().disableFlightEnforcement(p);
         }
 
+        plugin.getTokenRewardManager().rewardZoneClose(activeZone);
         plugin.getMobSpawnManager().clearZoneMobs(activeZone);
         broadcastZoneClose();
         cancelTasks();

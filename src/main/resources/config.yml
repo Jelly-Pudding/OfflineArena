@@ -51,6 +51,9 @@ tokens:
   reward-interval-min: 60
   reward-interval-max: 180
 
+  # Flat token bonus given to every player inside the zone when it collapses.
+  zone-close-reward: 3
+
 mobs:
   # Mobs spawned per cycle when nobody is inside the zone.
   # Scales down as players enter; at player-capacity it drops to ~1 per cycle.
@@ -59,7 +62,7 @@ mobs:
 
   # Mobs spawned per cycle multiplier per phase. Earlier phases are larger so they
   # need higher values to keep the zone feeling populated.
-  phase-multiplier-awakening: 4.0
+  phase-multiplier-awakening: 7.0
   phase-multiplier-intensifying: 2.5
   phase-multiplier-critical: 1.5
   phase-multiplier-collapse: 1.0
@@ -68,8 +71,8 @@ mobs:
   player-capacity: 20
 
   # Hard cap on simultaneous zone mobs (randomised per zone open)
-  max-total-min: 100
-  max-total-max: 140
+  max-total-min: 160
+  max-total-max: 240
 
   # Spawn interval range (seconds) — a random value is chosen when the zone opens
   spawn-interval-min: 8

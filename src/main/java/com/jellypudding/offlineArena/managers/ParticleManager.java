@@ -20,7 +20,7 @@ public class ParticleManager {
     private static final double[] RING_COS      = new double[RING_COUNT];
     private static final double[] RING_SIN      = new double[RING_COUNT];
 
-    private static final double[] Y_OFFSETS = { -16, -12, -8, -4, 0, 4, 8, 12, 16, 20 };
+    private static final double[] Y_OFFSETS = { -21, -18, -15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24 };
 
     private static final int    PILLAR_ANGLE_STEP = 30;
     private static final int    PILLAR_COUNT      = 360 / PILLAR_ANGLE_STEP;
@@ -31,13 +31,11 @@ public class ParticleManager {
     private static final double PILLAR_Y_END   =  70;
     private static final double PILLAR_Y_STEP  =   3;
 
-    // ── Cap disc geometry (10° step = 36 points per ring) ────────────────────
-    private static final int    CAP_ANGLE_STEP   = 10;
-    private static final int    CAP_COUNT        = 360 / CAP_ANGLE_STEP;
-    private static final double[] CAP_COS        = new double[CAP_COUNT];
-    private static final double[] CAP_SIN        = new double[CAP_COUNT];
-    private static final double   CAP_VERT_DIST  = 60.0;
-    private static final double[] CAP_RADII_FRACS = { 0.25, 0.5, 0.75, 1.0 };
+    // ── Cap band geometry — 3 rings drawn at/near each height boundary ────────
+    // Reuses RING_COS/SIN so density exactly matches the wall rings.
+    // offsets[0] = at the boundary, offsets[1/2] = steps inside the zone
+    private static final double[] CAP_Y_OFFSETS = { 0, 2, 4 };
+    private static final double   CAP_VERT_DIST = 60.0;
 
     // ── Cached dust options ───────────────────────────────────────────────────
     private static final Particle.DustOptions DUST_AWAKENING    = new Particle.DustOptions(Color.fromRGB(0,   220, 200), 1.5f);
@@ -55,11 +53,6 @@ public class ParticleManager {
             double r = Math.toRadians(i * PILLAR_ANGLE_STEP);
             PILLAR_COS[i] = Math.cos(r);
             PILLAR_SIN[i] = Math.sin(r);
-        }
-        for (int i = 0; i < CAP_COUNT; i++) {
-            double r = Math.toRadians(i * CAP_ANGLE_STEP);
-            CAP_COS[i] = Math.cos(r);
-            CAP_SIN[i] = Math.sin(r);
         }
     }
 
@@ -83,19 +76,30 @@ public class ParticleManager {
             double dz   = playerLoc.getZ() - cz;
             double dist = Math.sqrt(dx * dx + dz * dz);
 
-            if (Math.abs(dist - radius) > MAX_BORDER_DIST) continue;
+            boolean insideZone  = dist <= radius;
+            boolean nearBorder  = Math.abs(dist - radius) <= MAX_BORDER_DIST;
+
+            // Nothing to render for players far outside the zone
+            if (!insideZone && !nearBorder) continue;
 
             double eyeY    = playerLoc.getY() + player.getEyeHeight();
             double playerY = playerLoc.getY();
 
-            drawRings(player, world, cx, cz, radius, eyeY, heightMin, heightMax, dust, phase);
-            drawPillars(player, world, cx, cz, radius, eyeY, heightMin, heightMax, dust, phase);
+            // Wall rings and pillars only for players near the border
+            if (nearBorder) {
+                drawRings(player, world, cx, cz, radius, eyeY, heightMin, heightMax, dust, phase);
+                drawPillars(player, world, cx, cz, radius, eyeY, heightMin, heightMax, dust, phase);
+            }
+
+            // Cap discs for all players inside (or near) the zone regardless of horizontal distance to wall
             drawCapRings(player, world, cx, cz, radius, playerY, heightMin, heightMax, dust, phase);
 
-            double borderDist = Math.abs(dist - radius);
-            if (borderDist < SOUND_DIST) {
-                float closeness = (float) (1.0 - borderDist / SOUND_DIST);
-                playProximitySound(player, playerLoc, phase, closeness);
+            if (nearBorder) {
+                double borderDist = Math.abs(dist - radius);
+                if (borderDist < SOUND_DIST) {
+                    float closeness = (float) (1.0 - borderDist / SOUND_DIST);
+                    playProximitySound(player, playerLoc, phase, closeness);
+                }
             }
         }
     }
@@ -116,7 +120,7 @@ public class ParticleManager {
             for (int i = 0; i < RING_COUNT; i++) {
                 loc.setX(cx + radius * RING_COS[i]);
                 loc.setZ(cz + radius * RING_SIN[i]);
-                player.spawnParticle(Particle.DUST, loc, 2, SPREAD, SPREAD, SPREAD, 0, dust);
+                player.spawnParticle(Particle.DUST, loc, 3, SPREAD, SPREAD, SPREAD, 0, dust);
                 int deg = i * RING_ANGLE_STEP;
                 if (flame     && deg % 8  == 0) player.spawnParticle(Particle.FLAME,          loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
                 if (soulFlame && deg % 10 == 0) player.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
@@ -148,9 +152,9 @@ public class ParticleManager {
     }
 
     /**
-     * Concentric-ring "bullseye" discs drawn at the absolute floor and ceiling of the zone.
-     * Only rendered when the player is within CAP_VERT_DIST blocks of each bound, so they
-     * are visible from anywhere inside the zone when approaching the height limit.
+     * Draws a band of 3 wall-style horizontal rings at each height boundary.
+     * Each ring uses the same RING_COS/SIN table as the walls so density is identical.
+     * Shown to players within CAP_VERT_DIST blocks of each boundary.
      */
     private static void drawCapRings(Player player, World world,
                                       double cx, double cz, double radius, double playerY,
@@ -164,22 +168,24 @@ public class ParticleManager {
         boolean soulFlame = phase == ZonePhase.COLLAPSE;
         Location loc = new Location(world, 0, 0, 0);
 
-        if (showFloor)   renderCapDisc(player, loc, cx, cz, radius, heightMin, dust, flame, soulFlame);
-        if (showCeiling) renderCapDisc(player, loc, cx, cz, radius, heightMax, dust, flame, soulFlame);
+        // +1 = rings step upward into the zone from the floor; -1 = downward from the ceiling
+        if (showFloor)   renderCapBand(player, loc, cx, cz, radius, heightMin, +1, dust, flame, soulFlame);
+        if (showCeiling) renderCapBand(player, loc, cx, cz, radius, heightMax, -1, dust, flame, soulFlame);
     }
 
-    private static void renderCapDisc(Player player, Location loc,
-                                       double cx, double cz, double radius, double y,
+    private static void renderCapBand(Player player, Location loc,
+                                       double cx, double cz, double radius,
+                                       double boundaryY, int direction,
                                        Particle.DustOptions dust, boolean flame, boolean soulFlame) {
-        loc.setY(y);
-        for (double frac : CAP_RADII_FRACS) {
-            double r = radius * frac;
-            for (int i = 0; i < CAP_COUNT; i++) {
-                loc.setX(cx + r * CAP_COS[i]);
-                loc.setZ(cz + r * CAP_SIN[i]);
-                player.spawnParticle(Particle.DUST, loc, 2, 0.2, 0.05, 0.2, 0, dust);
-                if (flame     && i % 3 == 0) player.spawnParticle(Particle.FLAME,          loc, 1, 0.1, 0.02, 0.1, 0.005);
-                if (soulFlame && i % 4 == 0) player.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 1, 0.1, 0.02, 0.1, 0.005);
+        for (double yOff : CAP_Y_OFFSETS) {
+            loc.setY(boundaryY + direction * yOff);
+            for (int i = 0; i < RING_COUNT; i++) {
+                loc.setX(cx + radius * RING_COS[i]);
+                loc.setZ(cz + radius * RING_SIN[i]);
+                player.spawnParticle(Particle.DUST, loc, 3, SPREAD, SPREAD, SPREAD, 0, dust);
+                int deg = i * RING_ANGLE_STEP;
+                if (flame     && deg % 8  == 0) player.spawnParticle(Particle.FLAME,          loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
+                if (soulFlame && deg % 10 == 0) player.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
             }
         }
     }

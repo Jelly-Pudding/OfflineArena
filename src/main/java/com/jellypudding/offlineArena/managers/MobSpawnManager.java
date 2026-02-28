@@ -114,6 +114,7 @@ public class MobSpawnManager {
         UUID uuid = mob.getUniqueId();
         zone.trackMob(uuid);
         allSpawnedMobs.add(uuid);
+        mob.setPersistent(false); // never save to world file — prevents ghosts after unclean shutdown
         mob.getPersistentDataContainer().set(ZONE_MOB_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 

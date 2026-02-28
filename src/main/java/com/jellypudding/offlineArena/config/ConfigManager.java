@@ -38,21 +38,22 @@ public class ConfigManager {
     public double getZoneHeightMax()        { return config.getDouble("zone.height-max", 200.0); }
 
     // Tokens
-    public int getBaseTokenReward()      { return config.getInt("tokens.base-reward", 1); }
-    public int getMaxTokenReward()       { return config.getInt("tokens.max-reward", 2); }
+    public int getBaseTokenReward()      { return config.getInt("tokens.base-reward",        1); }
+    public int getMaxTokenReward()       { return config.getInt("tokens.max-reward",          2); }
     public int getTokenIntervalMin()     { return config.getInt("tokens.reward-interval-min", 60); }
     public int getTokenIntervalMax()     { return config.getInt("tokens.reward-interval-max", 180); }
+    public int getZoneCloseReward()      { return config.getInt("tokens.zone-close-reward",   3); }
 
     // Mobs
     public int    getBaseSpawnCountMin()              { return config.getInt("mobs.base-spawn-count-min",    8); }
     public int    getBaseSpawnCountMax()              { return config.getInt("mobs.base-spawn-count-max",   12); }
-    public double getPhaseMultiplierAwakening()       { return config.getDouble("mobs.phase-multiplier-awakening",    4.0); }
+    public double getPhaseMultiplierAwakening()       { return config.getDouble("mobs.phase-multiplier-awakening",    7.0); }
     public double getPhaseMultiplierIntensifying()    { return config.getDouble("mobs.phase-multiplier-intensifying", 2.5); }
     public double getPhaseMultiplierCritical()        { return config.getDouble("mobs.phase-multiplier-critical",     1.5); }
     public double getPhaseMultiplierCollapse()        { return config.getDouble("mobs.phase-multiplier-collapse",     1.0); }
     public int getPlayerCapacity()      { return config.getInt("mobs.player-capacity", 10); }
-    public int getMaxTotalMobsMin()     { return config.getInt("mobs.max-total-min", 100); }
-    public int getMaxTotalMobsMax()     { return config.getInt("mobs.max-total-max", 140); }
+    public int getMaxTotalMobsMin()     { return config.getInt("mobs.max-total-min", 160); }
+    public int getMaxTotalMobsMax()     { return config.getInt("mobs.max-total-max", 240); }
     public int getSpawnIntervalMin()    { return config.getInt("mobs.spawn-interval-min", 8); }
     public int getSpawnIntervalMax()    { return config.getInt("mobs.spawn-interval-max", 15); }
     public int getMaxWithers()          { return config.getInt("mobs.max-withers", 3); }

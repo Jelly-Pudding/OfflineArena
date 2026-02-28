@@ -60,4 +60,23 @@ public class TokenRewardManager {
         stale.forEach(zone::removePlayer);
     }
 
+    public void rewardZoneClose(DeadZone zone) {
+        int reward = plugin.getConfigManager().getZoneCloseReward();
+        if (reward <= 0 || zone.getPlayersInZone().isEmpty()) return;
+
+        Plugin sv = Bukkit.getPluginManager().getPlugin("SimpleVote");
+        if (!(sv instanceof SimpleVote simpleVote) || !sv.isEnabled()) return;
+
+        for (UUID uuid : zone.getPlayersInZone()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null || !player.isOnline()) continue;
+
+            simpleVote.getTokenManager().addTokens(uuid, reward);
+            player.sendActionBar(
+                Component.text("+" + reward + " tokens ", NamedTextColor.GOLD)
+                    .append(Component.text("| survived the Dead Zone", NamedTextColor.DARK_GRAY))
+            );
+        }
+    }
+
 }
