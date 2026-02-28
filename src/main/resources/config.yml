@@ -36,7 +36,7 @@ zone:
 
   # Time range (seconds) before the zone reopens after collapsing
   respawn-delay-min: 600
-  respawn-delay-max: 1800
+  respawn-delay-max: 14400
 
   # Open a zone automatically 10 seconds after the plugin loads
   auto-start: true
@@ -59,7 +59,7 @@ tokens:
   reward-interval-max: 300
 
   # Flat token bonus given to every player inside the zone when it collapses.
-  zone-close-reward: 3
+  zone-close-reward: 4
 
 mobs:
   # Mobs spawned per cycle when nobody is inside the zone.

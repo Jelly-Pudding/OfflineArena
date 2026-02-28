@@ -35,8 +35,8 @@ public class ConfigManager {
     public int getShrinkIntervalCollapseMax()     { return config.getInt("zone.shrink-interval-collapse-max",     15); }
     public double getShrinkAmountMin()      { return config.getDouble("zone.shrink-amount-min", 2.0); }
     public double getShrinkAmountMax()      { return config.getDouble("zone.shrink-amount-max", 5.0); }
-    public int    getRespawnDelayMin()      { return config.getInt("zone.respawn-delay-min", 600); }
-    public int    getRespawnDelayMax()      { return config.getInt("zone.respawn-delay-max", 1800); }
+    public int    getRespawnDelayMin()      { return config.getInt("zone.respawn-delay-min",   600); }
+    public int    getRespawnDelayMax()      { return config.getInt("zone.respawn-delay-max", 14400); }
     public int    getCollapseDelayMin()     { return config.getInt("zone.collapse-delay-min", 20); }
     public int    getCollapseDelayMax()     { return config.getInt("zone.collapse-delay-max", 45); }
     public boolean isAutoStart()            { return config.getBoolean("zone.auto-start", true); }
@@ -48,7 +48,7 @@ public class ConfigManager {
     public int getMaxTokenReward()       { return config.getInt("tokens.max-reward",          2); }
     public int getTokenIntervalMin()     { return config.getInt("tokens.reward-interval-min", 120); }
     public int getTokenIntervalMax()     { return config.getInt("tokens.reward-interval-max", 300); }
-    public int getZoneCloseReward()      { return config.getInt("tokens.zone-close-reward",   3); }
+    public int getZoneCloseReward()      { return config.getInt("tokens.zone-close-reward",   4); }
 
     // Mobs
     public int    getBaseSpawnCountMin()              { return config.getInt("mobs.base-spawn-count-min",    8); }
