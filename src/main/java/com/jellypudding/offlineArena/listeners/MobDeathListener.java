@@ -20,8 +20,11 @@ public class MobDeathListener implements Listener {
         if (!plugin.getMobSpawnManager().isZoneMob(event.getEntity())) return;
 
         DeadZone zone = plugin.getZoneManager().getActiveZone();
-        if (zone == null) return;
+        if (zone != null) zone.untrackMob(event.getEntity().getUniqueId());
 
-        zone.untrackMob(event.getEntity().getUniqueId());
+        if (plugin.getMobSpawnManager().isGhostMob(event.getEntity())) {
+            event.getDrops().clear();
+            event.getDrops().add(plugin.getMobSpawnManager().createHeartItem());
+        }
     }
 }

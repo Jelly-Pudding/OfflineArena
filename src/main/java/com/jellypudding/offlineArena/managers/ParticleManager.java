@@ -20,7 +20,10 @@ public class ParticleManager {
     private static final double[] RING_COS      = new double[RING_COUNT];
     private static final double[] RING_SIN      = new double[RING_COUNT];
 
-    private static final double[] Y_OFFSETS = { -21, -18, -15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24 };
+    private static final double[] Y_OFFSETS = {
+        -33, -30, -27, -24, -21, -18, -15, -12, -9, -6, -3,
+          0,   3,   6,   9,  12,  15,  18,  21,  24, 27, 30, 33, 36
+    };
 
     private static final int    PILLAR_ANGLE_STEP = 30;
     private static final int    PILLAR_COUNT      = 360 / PILLAR_ANGLE_STEP;
@@ -106,7 +109,7 @@ public class ParticleManager {
         }
     }
 
-    /** Horizontal rings clamped to [heightMin, heightMax], drawn at eye-relative Y offsets. */
+    /** Horizontal rings drawn at eye-relative Y offsets, plus anchors at the zone height boundaries. */
     private static void drawRings(Player player, World world,
                                    double cx, double cz, double radius, double eyeY,
                                    double heightMin, double heightMax,
@@ -118,15 +121,26 @@ public class ParticleManager {
         for (double yOff : Y_OFFSETS) {
             double y = eyeY + yOff;
             if (y < heightMin || y > heightMax) continue;
-            loc.setY(y);
-            for (int i = 0; i < RING_COUNT; i++) {
-                loc.setX(cx + radius * RING_COS[i]);
-                loc.setZ(cz + radius * RING_SIN[i]);
-                player.spawnParticle(Particle.DUST, loc, 3, SPREAD, SPREAD, SPREAD, 0, dust);
-                int deg = i * RING_ANGLE_STEP;
-                if (flame     && deg % 8  == 0) player.spawnParticle(Particle.FLAME,          loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
-                if (soulFlame && deg % 10 == 0) player.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
-            }
+            drawRingAt(player, loc, cx, cz, radius, y, dust, flame, soulFlame);
+        }
+
+        // Boundary anchors — always show rings at floor and ceiling so the full wall extent is visible
+        for (double y : new double[]{ heightMin, heightMin + 3, heightMax - 3, heightMax }) {
+            drawRingAt(player, loc, cx, cz, radius, y, dust, flame, soulFlame);
+        }
+    }
+
+    private static void drawRingAt(Player player, Location loc,
+                                    double cx, double cz, double radius, double y,
+                                    Particle.DustOptions dust, boolean flame, boolean soulFlame) {
+        loc.setY(y);
+        for (int i = 0; i < RING_COUNT; i++) {
+            loc.setX(cx + radius * RING_COS[i]);
+            loc.setZ(cz + radius * RING_SIN[i]);
+            player.spawnParticle(Particle.DUST, loc, 3, SPREAD, SPREAD, SPREAD, 0, dust);
+            int deg = i * RING_ANGLE_STEP;
+            if (flame     && deg % 8  == 0) player.spawnParticle(Particle.FLAME,          loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
+            if (soulFlame && deg % 10 == 0) player.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
         }
     }
 

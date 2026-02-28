@@ -45,7 +45,8 @@ public class ZoneManager {
     private int    activeBaseSpawnCount;
     private long   activeFireInterval;
 
-    private boolean isCollapsing = false;
+    private boolean isCollapsing       = false;
+    private int     shrinkCountdownSecs = 0;
 
     private final Random random = new Random();
 
@@ -90,10 +91,6 @@ public class ZoneManager {
         double rMax = plugin.getConfigManager().getInitialRadiusMax();
         double initialRadius = rMin + random.nextDouble() * (rMax - rMin);
 
-        int siMin = plugin.getConfigManager().getShrinkIntervalMin();
-        int siMax = plugin.getConfigManager().getShrinkIntervalMax();
-        activeShrinkInterval = siMin + random.nextInt(Math.max(1, siMax - siMin + 1));
-
         double saMin = plugin.getConfigManager().getShrinkAmountMin();
         double saMax = plugin.getConfigManager().getShrinkAmountMax();
         activeShrinkAmount = saMin + random.nextDouble() * (saMax - saMin);
@@ -130,8 +127,8 @@ public class ZoneManager {
         startTasks();
 
         plugin.getLogger().info(String.format(
-            "Dead Zone opened at (%.0f, %.0f) radius=%.0f shrinkInterval=%ds shrinkAmount=%.1f spawnInterval=%ds",
-            cx, cz, initialRadius, activeShrinkInterval, activeShrinkAmount, activeSpawnInterval));
+            "Dead Zone opened at (%.0f, %.0f) radius=%.0f shrinkAmount=%.1f spawnInterval=%ds",
+            cx, cz, initialRadius, activeShrinkAmount, activeSpawnInterval));
     }
 
     public void closeZone(boolean natural) {
@@ -165,12 +162,11 @@ public class ZoneManager {
     }
 
     private void startTasks() {
-        long shrinkTicks = (long) activeShrinkInterval * 20L;
-        long mobTicks    = (long) activeSpawnInterval  * 20L;
+        long mobTicks = (long) activeSpawnInterval * 20L;
 
-        shrinkTask   = Bukkit.getScheduler().runTaskTimer(plugin, this::tickShrink,    shrinkTicks, shrinkTicks);
+        scheduleNextShrink();
         mobTask      = Bukkit.getScheduler().runTaskTimer(plugin, this::tickMobs,      mobTicks,    mobTicks);
-        particleTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickParticles, 40L,         40L);
+        particleTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickParticles, 20L, 20L);
         fireTask     = Bukkit.getScheduler().runTaskTimer(plugin, this::tickFire, activeFireInterval, activeFireInterval);
         scheduleNextTokenReward();
     }
@@ -187,10 +183,31 @@ public class ZoneManager {
 
         if (phaseChanged) onPhaseChange(activeZone.getCurrentPhase());
         updateBossBar();
+        scheduleNextShrink();
     }
 
     private void tickMobs()      { if (activeZone != null) plugin.getMobSpawnManager().spawnMobs(activeZone); }
-    private void tickParticles() { if (activeZone != null) plugin.getParticleManager().drawZoneBorder(activeZone); }
+    private void tickParticles() {
+        if (activeZone == null) return;
+        plugin.getParticleManager().drawZoneBorder(activeZone);
+        if (!isCollapsing && shrinkCountdownSecs > 0) shrinkCountdownSecs--;
+        updateBossBar();
+    }
+
+    private void scheduleNextShrink() {
+        if (activeZone == null || isCollapsing) return;
+        int min, max;
+        switch (activeZone.getCurrentPhase()) {
+            case AWAKENING    -> { min = plugin.getConfigManager().getShrinkIntervalAwakeningMin();    max = plugin.getConfigManager().getShrinkIntervalAwakeningMax(); }
+            case INTENSIFYING -> { min = plugin.getConfigManager().getShrinkIntervalIntensifyingMin(); max = plugin.getConfigManager().getShrinkIntervalIntensifyingMax(); }
+            case CRITICAL     -> { min = plugin.getConfigManager().getShrinkIntervalCriticalMin();     max = plugin.getConfigManager().getShrinkIntervalCriticalMax(); }
+            case COLLAPSE     -> { min = plugin.getConfigManager().getShrinkIntervalCollapseMin();     max = plugin.getConfigManager().getShrinkIntervalCollapseMax(); }
+            default           -> { min = 20; max = 45; }
+        }
+        activeShrinkInterval = min + random.nextInt(Math.max(1, max - min + 1));
+        shrinkCountdownSecs  = activeShrinkInterval;
+        shrinkTask = Bukkit.getScheduler().runTaskLater(plugin, this::tickShrink, (long) activeShrinkInterval * 20L);
+    }
 
     private void scheduleNextTokenReward() {
         if (activeZone == null) return;
@@ -355,7 +372,10 @@ public class ZoneManager {
     private String buildBossBarTitle() {
         if (activeZone == null) return "Dead Zone";
         ZonePhase p = activeZone.getCurrentPhase();
-        return p.getColorCode() + "Dead Zone §8| " + p.getColorCode() + p.name();
+        String c     = p.getColorCode();
+        String phase = c + "Dead Zone §8| " + c + p.name();
+        if (isCollapsing) return phase + " §8| §cCollapsing";
+        return phase + " §8| " + c + "shrinks in " + shrinkCountdownSecs + "s";
     }
 
     private void destroyBossBar() {

@@ -8,8 +8,10 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.HeightMap;
+import org.bukkit.block.Block;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -20,19 +22,21 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- *   AWAKENING    — The Vagabond / The Lurker / Loot Goblin / The Vagrant
+ *   AWAKENING    — The Vagabond / The Lurker / Loot Goblin / The Vagrant / The Tracker
  *   INTENSIFYING — The Marauder / The Marksman / The Hunter / The Raider
  *   CRITICAL     — The Defiler / The Alchemist / The Reaper / The Wraith
  *   COLLAPSE     — The Warlord / The Psychopath / The Void (Wither) / The Conjurer
@@ -40,6 +44,8 @@ import java.util.Set;
 public class MobSpawnManager {
 
     private static final NamespacedKey ZONE_MOB_KEY = new NamespacedKey("offlinearena", "dead_zone_mob");
+    private static final NamespacedKey GHOST_MOB_KEY = new NamespacedKey("offlinearena", "ghost_mob");
+    private static final NamespacedKey SL_HEART_KEY  = new NamespacedKey("simplelifesteal", "lifesteal_heart");
 
     private final OfflineArena plugin;
     private final Random    random         = new Random();
@@ -105,6 +111,12 @@ public class MobSpawnManager {
         Location loc = randomLocationInZone(zone);
         if (loc == null) return;
 
+        double ghostChance = plugin.getConfigManager().getGhostSpawnChance();
+        if (ghostChance > 0 && random.nextDouble() < ghostChance && !Bukkit.getBannedPlayers().isEmpty()) {
+            Entity ghost = spawnGhostMob(loc, zone.getCurrentPhase());
+            if (ghost != null) { tag(ghost, zone); return; }
+        }
+
         String type = randomMobType(zone.getCurrentPhase());
         Entity mob  = buildMob(loc, type);
         if (mob != null) tag(mob, zone);
@@ -120,7 +132,7 @@ public class MobSpawnManager {
 
     private String randomMobType(ZonePhase phase) {
         String[] pool = switch (phase) {
-            case AWAKENING    -> new String[]{"VAGABOND", "LURKER", "LOOT_GOBLIN", "VAGRANT"};
+            case AWAKENING    -> new String[]{"VAGABOND", "LURKER", "LOOT_GOBLIN", "VAGRANT", "TRACKER"};
             case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER", "RAIDER", "INCENDIARY"};
             case CRITICAL     -> new String[]{"DEFILER", "ALCHEMIST", "REAPER", "WRAITH", "HOLLOW"};
             case COLLAPSE     -> new String[]{"WARLORD", "PSYCHOPATH", "VOID", "CONJURER"};
@@ -134,6 +146,7 @@ public class MobSpawnManager {
             case "LURKER"     -> spawnLurker(loc);
             case "LOOT_GOBLIN"-> spawnLootGoblin(loc);
             case "VAGRANT"    -> spawnVagrant(loc);
+            case "TRACKER"    -> spawnTracker(loc);
             case "MARAUDER"   -> spawnMarauder(loc);
             case "MARKSMAN"   -> spawnMarksman(loc);
             case "HUNTER"     -> spawnHunter(loc);
@@ -209,6 +222,18 @@ public class MobSpawnManager {
         setSpeed(h, 0.27);
         setDamage(h, 4.5);
         return h;
+    }
+
+    private Stray spawnTracker(Location loc) {
+        Stray s = summon(loc, EntityType.STRAY);
+        name(s, "The Tracker", NamedTextColor.GREEN, false);
+        setHealth(s, 22.0);
+        setSpeed(s, 0.25);
+        setDamage(s, 3.5);
+        EntityEquipment eq = s.getEquipment();
+        eq.setItemInMainHand(enchantedItem(Material.BOW, "power", 1));
+        noDrops(eq);
+        return s;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -529,28 +554,84 @@ public class MobSpawnManager {
     }
 
     private Location randomLocationInZone(DeadZone zone) {
-        Location center = zone.getCenter();
-        double   radius = zone.getCurrentRadius();
-        World    world  = center.getWorld();
+        Location center    = zone.getCenter();
+        double   radius    = zone.getCurrentRadius();
+        World    world     = center.getWorld();
+        double   heightMin = zone.getHeightMin();
+        double   heightMax = zone.getHeightMax();
         if (world == null) return null;
 
-        // AWAKENING: enforce a minimum distance so mobs spread across the large zone
-        // rather than clustering near the centre.
         double minFrac = zone.getCurrentPhase() == ZonePhase.AWAKENING ? 0.2 : 0.0;
         double maxFrac = 0.92;
         double range   = (maxFrac - minFrac) * radius;
 
-        for (int attempt = 0; attempt < 12; attempt++) {
+        for (int attempt = 0; attempt < 20; attempt++) {
             double angle = random.nextDouble() * 2 * Math.PI;
-            // sqrt distribution gives area-proportional spread (vs. linear which crowds the centre)
             double dist  = minFrac * radius + Math.sqrt(random.nextDouble()) * range;
             double x     = center.getX() + dist * Math.cos(angle);
             double z     = center.getZ() + dist * Math.sin(angle);
             int    y     = world.getHighestBlockYAt((int) x, (int) z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+
+            // Respect zone height bounds
+            if (y + 1 < heightMin || y + 1 > heightMax) continue;
+
             Location candidate = new Location(world, x, y + 1, z);
-            if (candidate.getBlock().isPassable()) return candidate;
+            Block feet = candidate.getBlock();
+            Block head = feet.getRelative(0, 1, 0);
+
+            // Need two clear blocks so a 2-block-tall mob doesn't suffocate
+            if (!feet.isPassable() || !head.isPassable()) continue;
+
+            // Don't spawn in or directly adjacent to lava/water
+            Block below = feet.getRelative(0, -1, 0);
+            if (below.getType() == Material.LAVA || feet.getType() == Material.LAVA
+                    || head.getType() == Material.LAVA) continue;
+
+            return candidate;
         }
-        return center.clone().add(0, 1, 0);
+        return null;
+    }
+
+    private Entity spawnGhostMob(Location loc, ZonePhase phase) {
+        List<org.bukkit.OfflinePlayer> banned = new ArrayList<>(Bukkit.getBannedPlayers());
+        if (banned.isEmpty()) return null;
+        String playerName = banned.get(random.nextInt(banned.size())).getName();
+        if (playerName == null || playerName.isBlank()) return null;
+
+        EntityType[] types = { EntityType.ZOMBIE, EntityType.SKELETON, EntityType.VINDICATOR };
+        LivingEntity mob = summon(loc, types[random.nextInt(types.length)]);
+
+        name(mob, playerName + "'s Ghost", phase.getTextColor(), true);
+        setHealth(mob, 45.0);
+        setSpeed(mob, 0.34);
+        setDamage(mob, 7.0);
+        addEffect(mob, PotionEffectType.GLOWING, 0);
+
+        EntityEquipment eq = mob.getEquipment();
+        if (eq != null) {
+            eq.setHelmet(new ItemStack(Material.LEATHER_HELMET));
+            noDrops(eq);
+        }
+        mob.getPersistentDataContainer().set(GHOST_MOB_KEY, PersistentDataType.BYTE, (byte) 1);
+        return mob;
+    }
+
+    public ItemStack createHeartItem() {
+        ItemStack item = new ItemStack(Material.APPLE, 1);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(Component.text("Heart", NamedTextColor.RED, TextDecoration.BOLD)
+            .decoration(TextDecoration.ITALIC, false));
+        meta.lore(java.util.List.of(
+            Component.text("Consume to regain a heart.", NamedTextColor.GREEN)
+                .decoration(TextDecoration.ITALIC, false)
+        ));
+        meta.getPersistentDataContainer().set(SL_HEART_KEY, PersistentDataType.BOOLEAN, true);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public boolean isGhostMob(org.bukkit.entity.Entity entity) {
+        return entity.getPersistentDataContainer().has(GHOST_MOB_KEY, PersistentDataType.BYTE);
     }
 
     private double phaseMultiplier(ZonePhase phase) {

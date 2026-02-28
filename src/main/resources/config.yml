@@ -14,9 +14,16 @@ zone:
   # Zone collapses when radius shrinks to this value (blocks)
   min-radius: 15.0
 
-  # Shrink interval range (seconds). How often the zone loses radius
-  shrink-interval-min: 20
-  shrink-interval-max: 45
+  # Shrink interval per phase (seconds). A random value is picked each time the zone shrinks.
+  # Earlier phases shrink less frequently; later phases shrink faster.
+  shrink-interval-awakening-min: 20
+  shrink-interval-awakening-max: 30
+  shrink-interval-intensifying-min: 17
+  shrink-interval-intensifying-max: 23
+  shrink-interval-critical-min: 13
+  shrink-interval-critical-max: 18
+  shrink-interval-collapse-min: 8
+  shrink-interval-collapse-max: 15
 
   # Shrink amount range (blocks removed per tick)
   shrink-amount-min: 2.0
@@ -48,8 +55,8 @@ tokens:
 
   # Token reward interval range (seconds). Starts at max when zone opens, decreases
   # linearly to min as the zone shrinks. Rewards become more frequent as danger increases.
-  reward-interval-min: 60
-  reward-interval-max: 180
+  reward-interval-min: 120
+  reward-interval-max: 300
 
   # Flat token bonus given to every player inside the zone when it collapses.
   zone-close-reward: 3
@@ -80,6 +87,10 @@ mobs:
 
   # Max simultaneous Withers allowed in the zone during Collapse phase
   max-withers: 3
+
+  # Chance (0.0-1.0) that any given mob spawn is replaced by a ghost mob named after a banned player.
+  # Ghost mobs are tougher and drop a lifesteal heart on death.
+  ghost-spawn-chance: 0.05
 
 environment:
   # How often the fire/explosion tick runs (ticks, 20 ticks = 1 second)

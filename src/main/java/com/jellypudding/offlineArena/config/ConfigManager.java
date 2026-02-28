@@ -25,8 +25,14 @@ public class ConfigManager {
     public double getInitialRadiusMin()     { return config.getDouble("zone.initial-radius-min", 100.0); }
     public double getInitialRadiusMax()     { return config.getDouble("zone.initial-radius-max", 200.0); }
     public double getMinRadius()            { return config.getDouble("zone.min-radius", 15.0); }
-    public int    getShrinkIntervalMin()    { return config.getInt("zone.shrink-interval-min", 20); }
-    public int    getShrinkIntervalMax()    { return config.getInt("zone.shrink-interval-max", 45); }
+    public int getShrinkIntervalAwakeningMin()    { return config.getInt("zone.shrink-interval-awakening-min",    20); }
+    public int getShrinkIntervalAwakeningMax()    { return config.getInt("zone.shrink-interval-awakening-max",    30); }
+    public int getShrinkIntervalIntensifyingMin() { return config.getInt("zone.shrink-interval-intensifying-min", 17); }
+    public int getShrinkIntervalIntensifyingMax() { return config.getInt("zone.shrink-interval-intensifying-max", 23); }
+    public int getShrinkIntervalCriticalMin()     { return config.getInt("zone.shrink-interval-critical-min",     13); }
+    public int getShrinkIntervalCriticalMax()     { return config.getInt("zone.shrink-interval-critical-max",     18); }
+    public int getShrinkIntervalCollapseMin()     { return config.getInt("zone.shrink-interval-collapse-min",      8); }
+    public int getShrinkIntervalCollapseMax()     { return config.getInt("zone.shrink-interval-collapse-max",     15); }
     public double getShrinkAmountMin()      { return config.getDouble("zone.shrink-amount-min", 2.0); }
     public double getShrinkAmountMax()      { return config.getDouble("zone.shrink-amount-max", 5.0); }
     public int    getRespawnDelayMin()      { return config.getInt("zone.respawn-delay-min", 600); }
@@ -40,8 +46,8 @@ public class ConfigManager {
     // Tokens
     public int getBaseTokenReward()      { return config.getInt("tokens.base-reward",        1); }
     public int getMaxTokenReward()       { return config.getInt("tokens.max-reward",          2); }
-    public int getTokenIntervalMin()     { return config.getInt("tokens.reward-interval-min", 60); }
-    public int getTokenIntervalMax()     { return config.getInt("tokens.reward-interval-max", 180); }
+    public int getTokenIntervalMin()     { return config.getInt("tokens.reward-interval-min", 120); }
+    public int getTokenIntervalMax()     { return config.getInt("tokens.reward-interval-max", 300); }
     public int getZoneCloseReward()      { return config.getInt("tokens.zone-close-reward",   3); }
 
     // Mobs
@@ -56,7 +62,8 @@ public class ConfigManager {
     public int getMaxTotalMobsMax()     { return config.getInt("mobs.max-total-max", 240); }
     public int getSpawnIntervalMin()    { return config.getInt("mobs.spawn-interval-min", 8); }
     public int getSpawnIntervalMax()    { return config.getInt("mobs.spawn-interval-max", 15); }
-    public int getMaxWithers()          { return config.getInt("mobs.max-withers", 3); }
+    public int    getMaxWithers()         { return config.getInt("mobs.max-withers", 3); }
+    public double getGhostSpawnChance()   { return config.getDouble("mobs.ghost-spawn-chance", 0.05); }
 
     // Environment
     public int getFireIntervalMin()               { return config.getInt("environment.fire-interval-min", 200); }
