@@ -232,6 +232,7 @@ public class MobSpawnManager {
         setSpeed(s, 0.25);
         setDamage(s, 3.5);
         EntityEquipment eq = s.getEquipment();
+        eq.setHelmet(new ItemStack(Material.LEATHER_HELMET));
         eq.setItemInMainHand(enchantedItem(Material.BOW, "power", 1));
         noDrops(eq);
         return s;
