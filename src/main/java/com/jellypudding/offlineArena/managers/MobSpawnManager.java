@@ -671,6 +671,25 @@ public class MobSpawnManager {
     }
 
     public void clearZoneMobs(DeadZone zone) {
+        Location center = zone.getCenter();
+        World world = center.getWorld();
+
+        // Force-load every chunk that was part of the zone
+        if (world != null) {
+            int chunkRadius = (int) Math.ceil(zone.getInitialRadius() / 16.0) + 1;
+            int cx = center.getBlockX() >> 4;
+            int cz = center.getBlockZ() >> 4;
+            for (int dx = -chunkRadius; dx <= chunkRadius; dx++) {
+                for (int dz = -chunkRadius; dz <= chunkRadius; dz++) {
+                    int chunkX = cx + dx;
+                    int chunkZ = cz + dz;
+                    if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                        world.loadChunk(chunkX, chunkZ, false);
+                    }
+                }
+            }
+        }
+
         for (UUID uuid : allSpawnedMobs) {
             Entity e = plugin.getServer().getEntity(uuid);
             if (e != null && e.isValid()) e.remove();
@@ -678,10 +697,10 @@ public class MobSpawnManager {
         allSpawnedMobs.clear();
         new ArrayList<>(zone.getZoneMobs()).forEach(zone::untrackMob);
 
-        World world = zone.getCenter().getWorld();
+        // Vex sweep using initial radius so wandered Vexes are caught.
         if (world != null) {
-            double sweep = zone.getCurrentRadius() + 32;
-            world.getNearbyEntities(zone.getCenter(), sweep, sweep, sweep,
+            double sweep = zone.getInitialRadius() + 32;
+            world.getNearbyEntities(center, sweep, sweep, sweep,
                     e -> e instanceof Vex).forEach(Entity::remove);
         }
     }
