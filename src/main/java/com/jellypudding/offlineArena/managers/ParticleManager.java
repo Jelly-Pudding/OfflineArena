@@ -100,8 +100,10 @@ public class ParticleManager {
                 }
             }
             case CRITICAL -> {
-                player.playSound(player.getLocation(), Sound.ENTITY_WITHER_AMBIENT, volume * 0.7f, 0.5f);
-                player.playSound(player.getLocation(), Sound.BLOCK_PORTAL_AMBIENT, volume * 0.5f, 0.3f);
+                player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_AMBIENT, volume * 0.8f, 0.6f);
+                if (closeness > 0.6f) {
+                    player.playSound(player.getLocation(), Sound.AMBIENT_CAVE, volume * 0.5f, 0.4f);
+                }
             }
             case COLLAPSE -> {
                 player.playSound(player.getLocation(), Sound.ENTITY_WITHER_AMBIENT, volume, 0.3f);

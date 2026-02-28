@@ -40,7 +40,7 @@ tokens:
   base-reward: 1
 
   # Tokens per reward tick at minimum zone size (scales linearly as zone shrinks)
-  max-reward: 3
+  max-reward: 2
 
   # How often players inside receive tokens (seconds)
   reward-interval: 60
@@ -50,13 +50,13 @@ tokens:
 mobs:
   # Mobs spawned per cycle when nobody is inside the zone.
   # Scales down as players enter; at player-capacity it drops to ~1 per cycle.
-  base-spawn-count: 5
+  base-spawn-count: 8
 
   # The zone is considered "at capacity" at this many players. Mob spawns near-minimal.
   player-capacity: 10
 
   # Hard cap on simultaneous zone mobs
-  max-total: 30
+  max-total: 90
 
   # Spawn interval range (seconds) — a random value is chosen when the zone opens
   spawn-interval-min: 8

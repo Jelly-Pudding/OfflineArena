@@ -8,9 +8,12 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
@@ -30,11 +33,11 @@ public class ZoneManager {
     private BukkitTask mobTask;
     private BukkitTask tokenTask;
     private BukkitTask particleTask;
+    private BukkitTask fireTask;
     private BukkitTask respawnTask;
     private BukkitTask collapseAlarmTask;
     private BukkitTask collapseCloseTask;
 
-    // Per-zone randomised parameters
     private double activeShrinkAmount;
     private int    activeShrinkInterval;
     private int    activeSpawnInterval;
@@ -135,7 +138,8 @@ public class ZoneManager {
         shrinkTask   = Bukkit.getScheduler().runTaskTimer(plugin, this::tickShrink,    shrinkTicks, shrinkTicks);
         mobTask      = Bukkit.getScheduler().runTaskTimer(plugin, this::tickMobs,      mobTicks,    mobTicks);
         tokenTask    = Bukkit.getScheduler().runTaskTimer(plugin, this::tickTokens,    tokenTicks,  tokenTicks);
-        particleTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickParticles, 40L,         40L); // every 2 s
+        particleTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickParticles, 40L,         40L);
+        fireTask     = Bukkit.getScheduler().runTaskTimer(plugin, this::tickFire,      400L,        400L); // every 20s
     }
 
     private void tickShrink() {
@@ -156,11 +160,30 @@ public class ZoneManager {
     private void tickTokens()    { if (activeZone != null) plugin.getTokenRewardManager().rewardPlayers(activeZone); }
     private void tickParticles() { if (activeZone != null) plugin.getParticleManager().drawZoneBorder(activeZone); }
 
+    private void tickFire() {
+        if (activeZone == null) return;
+        Location center = activeZone.getCenter();
+        World world = center.getWorld();
+        if (world == null) return;
+
+        int count = 2 + random.nextInt(3);
+        for (int i = 0; i < count; i++) {
+            Location loc = randomSurfaceInZone(0.75);
+            if (loc == null) continue;
+            Block surface = loc.getBlock();
+            Block above   = surface.getRelative(0, 1, 0);
+            if (surface.getType().isSolid() && above.getType() == Material.AIR) {
+                above.setType(Material.FIRE);
+            }
+        }
+    }
+
     private void cancelTasks() {
         if (shrinkTask   != null) { shrinkTask.cancel();   shrinkTask   = null; }
         if (mobTask      != null) { mobTask.cancel();      mobTask      = null; }
         if (tokenTask    != null) { tokenTask.cancel();    tokenTask    = null; }
         if (particleTask != null) { particleTask.cancel(); particleTask = null; }
+        if (fireTask     != null) { fireTask.cancel();     fireTask     = null; }
     }
 
     private void cancelCollapseTasks() {
@@ -175,28 +198,39 @@ public class ZoneManager {
             Component.text("The Dead Zone is collapsing...", NamedTextColor.DARK_RED)
         );
 
-        // Title + sound for players currently inside
-        for (java.util.UUID uuid : activeZone.getPlayersInZone()) {
-            Player p = Bukkit.getPlayer(uuid);
-            if (p == null) continue;
-            p.showTitle(Title.title(
-                Component.text("COLLAPSING", NamedTextColor.DARK_RED).decorate(TextDecoration.BOLD),
-                Component.text("Get out.", NamedTextColor.RED),
-                Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(3), Duration.ofMillis(500))
-            ));
-        }
-
-        // Alarm sounds every 5 seconds during the countdown
-        collapseAlarmTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                p.playSound(p.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.7f, 0.4f);
-            }
-        }, 0L, 100L);
+        collapseAlarmTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickCollapseAlarm, 0L, 100L);
 
         int cdMin = plugin.getConfigManager().getCollapseDelayMin();
         int cdMax = plugin.getConfigManager().getCollapseDelayMax();
         int delay = cdMin + random.nextInt(Math.max(1, cdMax - cdMin + 1));
         collapseCloseTask = Bukkit.getScheduler().runTaskLater(plugin, () -> closeZone(true), (long) delay * 20L);
+    }
+
+    private void tickCollapseAlarm() {
+        if (activeZone == null) return;
+        World world = activeZone.getCenter().getWorld();
+        if (world == null) return;
+
+        for (java.util.UUID uuid : activeZone.getPlayersInZone()) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) p.playSound(p.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.7f, 0.4f);
+        }
+
+        Location explodeLoc = randomSurfaceInZone(0.6);
+        if (explodeLoc != null) {
+            world.createExplosion(explodeLoc, 2.5f, true, true);
+        }
+
+        int fires = 3 + random.nextInt(3);
+        for (int i = 0; i < fires; i++) {
+            Location loc = randomSurfaceInZone(0.8);
+            if (loc == null) continue;
+            Block surface = loc.getBlock();
+            Block above   = surface.getRelative(0, 1, 0);
+            if (surface.getType().isSolid() && above.getType() == Material.AIR) {
+                above.setType(Material.FIRE);
+            }
+        }
     }
 
     private void onPhaseChange(ZonePhase phase) {
@@ -271,7 +305,6 @@ public class ZoneManager {
             Component.text("A Dead Zone has opened at " + coord + ".", NamedTextColor.RED)
         );
 
-        // Sound only — no title screen; players will see the title when they enter
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.4f, 0.7f);
         }
@@ -290,7 +323,29 @@ public class ZoneManager {
             Component.text("The Dead Zone has collapsed.", NamedTextColor.GRAY)
         );
 
-        // Layered dramatic sounds with staggered delays
+        final Location epicentre = activeZone.getCenter().clone();
+        final World    world     = epicentre.getWorld();
+
+        if (world != null) {
+            world.createExplosion(epicentre, 6.0f, true, true);
+            for (int i = 0; i < 4; i++) {
+                double a = random.nextDouble() * 2 * Math.PI;
+                double d = 5 + random.nextDouble() * 12;
+                world.strikeLightningEffect(epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a)));
+            }
+
+            for (int i = 0; i < 8; i++) {
+                final double a = random.nextDouble() * 2 * Math.PI;
+                final double d = 8 + random.nextDouble() * 35;
+                final long   delay = 3L + i * 5L;
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    Location loc = epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a));
+                    world.createExplosion(loc, 3.0f, true, true);
+                    world.strikeLightningEffect(loc);
+                }, delay);
+            }
+        }
+
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.6f, 0.5f);
         }
@@ -313,6 +368,21 @@ public class ZoneManager {
                 Color.DARK_GRAY
             );
         }
+    }
+
+    private Location randomSurfaceInZone(double radiusFraction) {
+        if (activeZone == null) return null;
+        Location center = activeZone.getCenter();
+        World    world  = center.getWorld();
+        if (world == null) return null;
+
+        double r     = activeZone.getCurrentRadius() * radiusFraction;
+        double angle = random.nextDouble() * 2 * Math.PI;
+        double dist  = random.nextDouble() * r;
+        double x     = center.getX() + dist * Math.cos(angle);
+        double z     = center.getZ() + dist * Math.sin(angle);
+        int    y     = world.getHighestBlockYAt((int) x, (int) z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+        return new Location(world, x, y, z);
     }
 
     public void shutdown() {

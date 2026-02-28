@@ -96,7 +96,7 @@ public class MobSpawnManager {
     private String randomMobType(ZonePhase phase) {
         String[] pool = switch (phase) {
             case AWAKENING    -> new String[]{"VAGABOND", "LURKER", "LOOT_GOBLIN", "SHADE"};
-            case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER", "Spectre"};
+            case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER", "SPECTRE"};
             case CRITICAL     -> new String[]{"DEFILER", "ALCHEMIST", "REAPER", "WRAITH"};
             case COLLAPSE     -> new String[]{"WARLORD", "PSYCHOPATH", "VOID", "BANSHEE"};
         };
@@ -112,7 +112,7 @@ public class MobSpawnManager {
             case "MARAUDER"   -> spawnMarauder(loc);
             case "MARKSMAN"   -> spawnMarksman(loc);
             case "HUNTER"     -> spawnHunter(loc);
-            case "Spectre"    -> spawnSpectre(loc);
+            case "SPECTRE"    -> spawnSpectre(loc);
             case "DEFILER"    -> spawnDefiler(loc);
             case "ALCHEMIST"  -> spawnAlchemist(loc);
             case "REAPER"     -> spawnReaper(loc);
@@ -180,6 +180,7 @@ public class MobSpawnManager {
         p.setSize(0);
         setHealth(p, 22.0);
         setDamage(p, 4.0);
+        addEffect(p, PotionEffectType.FIRE_RESISTANCE, 0);
         return p;
     }
 
@@ -251,6 +252,7 @@ public class MobSpawnManager {
         setHealth(p, 38.0);
         setDamage(p, 7.0);
         addEffect(p, PotionEffectType.SPEED, 0);
+        addEffect(p, PotionEffectType.FIRE_RESISTANCE, 0);
         return p;
     }
 
@@ -406,6 +408,7 @@ public class MobSpawnManager {
         setDamage(p, 12.0);
         addEffect(p, PotionEffectType.SPEED, 1);
         addEffect(p, PotionEffectType.STRENGTH, 0);
+        addEffect(p, PotionEffectType.FIRE_RESISTANCE, 0);
         return p;
     }
 
