@@ -171,6 +171,7 @@ public class MobSpawnManager {
         setDamage(z, 4.5);
 
         EntityEquipment eq = z.getEquipment();
+        eq.setHelmet(new ItemStack(Material.LEATHER_HELMET));
         ItemStack chest = new ItemStack(Material.LEATHER_CHESTPLATE);
         colorLeather(chest, Color.fromRGB(30, 30, 30));
         eq.setChestplate(chest);

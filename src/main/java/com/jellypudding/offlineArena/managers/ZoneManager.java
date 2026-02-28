@@ -248,7 +248,7 @@ public class ZoneManager {
                 float power = (float) (pwrMin + random.nextDouble() * (pwrMax - pwrMin));
                 world.createExplosion(loc, power, true, true);
                 if (lightningChance > 0 && random.nextDouble() < lightningChance) {
-                    world.strikeLightningEffect(loc);
+                    world.strikeLightning(loc);
                 }
             }
         }
@@ -415,7 +415,7 @@ public class ZoneManager {
                 float  pwr = (float) (pwrMin + random.nextDouble() * (pwrMax - pwrMin));
                 Location loc = epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a));
                 world.createExplosion(loc, pwr, true, true);
-                if (random.nextDouble() < lightningChance) world.strikeLightningEffect(loc);
+                if (random.nextDouble() < lightningChance) world.strikeLightning(loc);
             }
         }
 
