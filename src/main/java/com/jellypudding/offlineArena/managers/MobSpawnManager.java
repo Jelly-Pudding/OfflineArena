@@ -527,9 +527,16 @@ public class MobSpawnManager {
         World    world  = center.getWorld();
         if (world == null) return null;
 
+        // AWAKENING: enforce a minimum distance so mobs spread across the large zone
+        // rather than clustering near the centre.
+        double minFrac = zone.getCurrentPhase() == ZonePhase.AWAKENING ? 0.2 : 0.0;
+        double maxFrac = 0.92;
+        double range   = (maxFrac - minFrac) * radius;
+
         for (int attempt = 0; attempt < 12; attempt++) {
             double angle = random.nextDouble() * 2 * Math.PI;
-            double dist  = random.nextDouble() * radius * 0.85;
+            // sqrt distribution gives area-proportional spread (vs. linear which crowds the centre)
+            double dist  = minFrac * radius + Math.sqrt(random.nextDouble()) * range;
             double x     = center.getX() + dist * Math.cos(angle);
             double z     = center.getZ() + dist * Math.sin(angle);
             int    y     = world.getHighestBlockYAt((int) x, (int) z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
