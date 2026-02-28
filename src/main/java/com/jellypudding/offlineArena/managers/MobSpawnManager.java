@@ -30,10 +30,10 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- *   AWAKENING    — The Vagabond / The Lurker / Loot Goblin / The Shade
- *   INTENSIFYING — The Marauder / The Marksman / The Hunter / The Spectre
+ *   AWAKENING    — The Vagabond / The Lurker / Loot Goblin / The Vagrant
+ *   INTENSIFYING — The Marauder / The Marksman / The Hunter / The Raider
  *   CRITICAL     — The Defiler / The Alchemist / The Reaper / The Wraith
- *   COLLAPSE     — The Warlord / The Psychopath / The Void (Wither) / The Banshee
+ *   COLLAPSE     — The Warlord / The Psychopath / The Void (Wither) / The Conjurer
  */
 public class MobSpawnManager {
 
@@ -95,10 +95,10 @@ public class MobSpawnManager {
 
     private String randomMobType(ZonePhase phase) {
         String[] pool = switch (phase) {
-            case AWAKENING    -> new String[]{"VAGABOND", "LURKER", "LOOT_GOBLIN", "SHADE"};
-            case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER", "SPECTRE"};
+            case AWAKENING    -> new String[]{"VAGABOND", "LURKER", "LOOT_GOBLIN", "VAGRANT"};
+            case INTENSIFYING -> new String[]{"MARAUDER", "MARKSMAN", "HUNTER", "RAIDER"};
             case CRITICAL     -> new String[]{"DEFILER", "ALCHEMIST", "REAPER", "WRAITH"};
-            case COLLAPSE     -> new String[]{"WARLORD", "PSYCHOPATH", "VOID", "BANSHEE"};
+            case COLLAPSE     -> new String[]{"WARLORD", "PSYCHOPATH", "VOID", "CONJURER"};
         };
         return pool[random.nextInt(pool.length)];
     }
@@ -108,11 +108,11 @@ public class MobSpawnManager {
             case "VAGABOND"   -> spawnVagabond(loc);
             case "LURKER"     -> spawnLurker(loc);
             case "LOOT_GOBLIN"-> spawnLootGoblin(loc);
-            case "SHADE"      -> spawnShade(loc);
+            case "VAGRANT"    -> spawnVagrant(loc);
             case "MARAUDER"   -> spawnMarauder(loc);
             case "MARKSMAN"   -> spawnMarksman(loc);
             case "HUNTER"     -> spawnHunter(loc);
-            case "SPECTRE"    -> spawnSpectre(loc);
+            case "RAIDER"     -> spawnRaider(loc);
             case "DEFILER"    -> spawnDefiler(loc);
             case "ALCHEMIST"  -> spawnAlchemist(loc);
             case "REAPER"     -> spawnReaper(loc);
@@ -120,7 +120,7 @@ public class MobSpawnManager {
             case "WARLORD"    -> spawnWarlord(loc);
             case "PSYCHOPATH" -> spawnPsychopath(loc);
             case "VOID"       -> spawnVoid(loc);
-            case "BANSHEE"    -> spawnBanshee(loc);
+            case "CONJURER"   -> spawnConjurer(loc);
             default           -> null;
         };
     }
@@ -174,14 +174,13 @@ public class MobSpawnManager {
         return z;
     }
 
-    private Phantom spawnShade(Location loc) {
-        Phantom p = summon(loc.clone().add(0, 18, 0), EntityType.PHANTOM);
-        name(p, "The Shade", NamedTextColor.GREEN, false);
-        p.setSize(0);
-        setHealth(p, 22.0);
-        setDamage(p, 4.0);
-        addEffect(p, PotionEffectType.FIRE_RESISTANCE, 0);
-        return p;
+    private Husk spawnVagrant(Location loc) {
+        Husk h = summon(loc, EntityType.HUSK);
+        name(h, "The Vagrant", NamedTextColor.GREEN, false);
+        setHealth(h, 26.0);
+        setSpeed(h, 0.27);
+        setDamage(h, 4.5);
+        return h;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -245,14 +244,22 @@ public class MobSpawnManager {
         return z;
     }
 
-    private Phantom spawnSpectre(Location loc) {
-        Phantom p = summon(loc.clone().add(0, 18, 0), EntityType.PHANTOM);
-        name(p, "The Spectre", NamedTextColor.YELLOW, true);
-        p.setSize(1);
-        setHealth(p, 38.0);
-        setDamage(p, 7.0);
+    private Pillager spawnRaider(Location loc) {
+        Pillager p = summon(loc, EntityType.PILLAGER);
+        name(p, "The Raider", NamedTextColor.YELLOW, true);
+        setHealth(p, 42.0);
+        setSpeed(p, 0.32);
+
+        ItemStack crossbow = new ItemStack(Material.CROSSBOW);
+        crossbow.addUnsafeEnchantment(ench("quick_charge"), 3);
+        crossbow.addUnsafeEnchantment(ench("piercing"), 2);
+
+        EntityEquipment eq = p.getEquipment();
+        eq.setHelmet(new ItemStack(Material.CHAINMAIL_HELMET));
+        eq.setItemInMainHand(crossbow);
+        noDrops(eq);
+
         addEffect(p, PotionEffectType.SPEED, 0);
-        addEffect(p, PotionEffectType.FIRE_RESISTANCE, 0);
         return p;
     }
 
@@ -400,16 +407,15 @@ public class MobSpawnManager {
         return w;
     }
 
-    private Phantom spawnBanshee(Location loc) {
-        Phantom p = summon(loc.clone().add(0, 20, 0), EntityType.PHANTOM);
-        name(p, "The Banshee", NamedTextColor.DARK_RED, true);
-        p.setSize(2);
-        setHealth(p, 58.0);
-        setDamage(p, 12.0);
-        addEffect(p, PotionEffectType.SPEED, 1);
-        addEffect(p, PotionEffectType.STRENGTH, 0);
-        addEffect(p, PotionEffectType.FIRE_RESISTANCE, 0);
-        return p;
+    private Evoker spawnConjurer(Location loc) {
+        Evoker e = summon(loc, EntityType.EVOKER);
+        name(e, "The Conjurer", NamedTextColor.DARK_RED, true);
+        setHealth(e, 65.0);
+        setSpeed(e, 0.32);
+        addEffect(e, PotionEffectType.RESISTANCE, 0);
+        addEffect(e, PotionEffectType.SPEED, 0);
+        loc.getWorld().strikeLightningEffect(loc);
+        return e;
     }
 
     @SuppressWarnings("unchecked")

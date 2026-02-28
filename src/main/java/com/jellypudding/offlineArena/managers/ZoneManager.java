@@ -236,7 +236,7 @@ public class ZoneManager {
     private void onPhaseChange(ZonePhase phase) {
         Sound phaseSound = switch (phase) {
             case INTENSIFYING -> Sound.ENTITY_ELDER_GUARDIAN_AMBIENT;
-            case CRITICAL     -> Sound.ENTITY_ENDER_DRAGON_AMBIENT;
+            case CRITICAL     -> Sound.ENTITY_WITHER_AMBIENT;
             case COLLAPSE     -> Sound.ENTITY_WITHER_SPAWN;
             default           -> Sound.ENTITY_WITHER_AMBIENT;
         };
@@ -327,39 +327,45 @@ public class ZoneManager {
         final World    world     = epicentre.getWorld();
 
         if (world != null) {
-            world.createExplosion(epicentre, 6.0f, true, true);
-            for (int i = 0; i < 4; i++) {
+            world.createExplosion(epicentre, 10.0f, true, true);
+            for (int i = 0; i < 8; i++) {
                 double a = random.nextDouble() * 2 * Math.PI;
-                double d = 5 + random.nextDouble() * 12;
+                double d = 3 + random.nextDouble() * 10;
                 world.strikeLightningEffect(epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a)));
             }
 
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < 24; i++) {
                 final double a = random.nextDouble() * 2 * Math.PI;
-                final double d = 8 + random.nextDouble() * 35;
-                final long   delay = 3L + i * 5L;
+                final double d = 6 + i * 3.5 + random.nextDouble() * 8;
+                final long   delay = 2L + i * 3L;
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     Location loc = epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a));
-                    world.createExplosion(loc, 3.0f, true, true);
+                    world.createExplosion(loc, 4.0f, true, true);
                     world.strikeLightningEffect(loc);
                 }, delay);
             }
         }
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.6f, 0.5f);
+            p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.7f, 0.5f);
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) {
-                p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 0.4f);
+                p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.6f, 0.3f);
+                p.playSound(p.getLocation(), Sound.ENTITY_WITHER_DEATH, 0.8f, 0.6f);
             }
-        }, 15L);
+        }, 10L);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) {
-                p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 0.3f);
-                p.playSound(p.getLocation(), Sound.AMBIENT_CAVE, 0.7f, 0.3f);
+                p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.6f, 0.25f);
             }
         }, 30L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.playSound(p.getLocation(), Sound.AMBIENT_CAVE, 0.8f, 0.3f);
+                p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.4f, 0.2f);
+            }
+        }, 55L);
 
         if (plugin.getConfigManager().isDiscordAnnounceClose()) {
             plugin.getDiscordManager().sendFormatted(

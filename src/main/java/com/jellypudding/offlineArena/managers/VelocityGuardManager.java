@@ -25,7 +25,7 @@ public class VelocityGuardManager {
     }
 
     public void enableFlightEnforcement(Player player) {
-        if (available) api.enableFlightEnforcement(player);
+        if (available) api.enableFlightEnforcement(player, true, VelocityGuardAPI.STRICT_AIR_TICK_THRESHOLD);
     }
 
     public void disableFlightEnforcement(Player player) {
