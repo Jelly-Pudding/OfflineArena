@@ -34,11 +34,14 @@ public class ConfigManager {
     public int    getCollapseDelayMin()     { return config.getInt("zone.collapse-delay-min", 20); }
     public int    getCollapseDelayMax()     { return config.getInt("zone.collapse-delay-max", 45); }
     public boolean isAutoStart()            { return config.getBoolean("zone.auto-start", true); }
+    public double getZoneHeightMin()        { return config.getDouble("zone.height-min", 20.0); }
+    public double getZoneHeightMax()        { return config.getDouble("zone.height-max", 200.0); }
 
     // Tokens
     public int getBaseTokenReward()      { return config.getInt("tokens.base-reward", 1); }
-    public int getMaxTokenReward()       { return config.getInt("tokens.max-reward", 3); }
-    public int getTokenRewardInterval()  { return config.getInt("tokens.reward-interval", 60); }
+    public int getMaxTokenReward()       { return config.getInt("tokens.max-reward", 2); }
+    public int getTokenIntervalMin()     { return config.getInt("tokens.reward-interval-min", 60); }
+    public int getTokenIntervalMax()     { return config.getInt("tokens.reward-interval-max", 180); }
 
     // Mobs
     public int getBaseSpawnCountMin()   { return config.getInt("mobs.base-spawn-count-min", 12); }
@@ -61,10 +64,20 @@ public class ConfigManager {
     public int getFireCriticalMax()               { return config.getInt("environment.fire-critical-max", 12); }
     public int getFireCollapseMin()               { return config.getInt("environment.fire-collapse-min", 10); }
     public int getFireCollapseMax()               { return config.getInt("environment.fire-collapse-max", 18); }
-    public int getExplosionsIntensifyingMin()     { return config.getInt("environment.explosions-intensifying-min", 0); }
-    public int getExplosionsIntensifyingMax()     { return config.getInt("environment.explosions-intensifying-max", 2); }
-    public int getExplosionsCriticalMin()         { return config.getInt("environment.explosions-critical-min", 1); }
-    public int getExplosionsCriticalMax()         { return config.getInt("environment.explosions-critical-max", 3); }
+    public int   getExplosionsAwakeningMin()      { return config.getInt("environment.explosions-awakening-min",     0); }
+    public int   getExplosionsAwakeningMax()      { return config.getInt("environment.explosions-awakening-max",     1); }
+    public int   getExplosionsIntensifyingMin()   { return config.getInt("environment.explosions-intensifying-min",  0); }
+    public int   getExplosionsIntensifyingMax()   { return config.getInt("environment.explosions-intensifying-max",  2); }
+    public int   getExplosionsCriticalMin()       { return config.getInt("environment.explosions-critical-min",      1); }
+    public int   getExplosionsCriticalMax()       { return config.getInt("environment.explosions-critical-max",      3); }
+    public int   getExplosionsCollapseMin()       { return config.getInt("environment.explosions-collapse-min",      1); }
+    public int   getExplosionsCollapseMax()       { return config.getInt("environment.explosions-collapse-max",      3); }
+    public double getExplosionPowerMin()          { return config.getDouble("environment.explosion-power-min",       1.5); }
+    public double getExplosionPowerMax()          { return config.getDouble("environment.explosion-power-max",       3.0); }
+    public int   getFinaleExplosionsMin()         { return config.getInt("environment.finale-explosions-min",        6); }
+    public int   getFinaleExplosionsMax()         { return config.getInt("environment.finale-explosions-max",        14); }
+    public double getFinaleExplosionPowerMin()    { return config.getDouble("environment.finale-explosion-power-min", 3.0); }
+    public double getFinaleExplosionPowerMax()    { return config.getDouble("environment.finale-explosion-power-max", 6.0); }
 
     // Discord
     public boolean isDiscordEnabled()       { return config.getBoolean("discord.enabled", true); }

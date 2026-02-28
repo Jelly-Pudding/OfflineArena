@@ -104,7 +104,9 @@ public class ZoneManager {
         activeFireInterval = fiMin + random.nextInt(Math.max(1, fiMax - fiMin + 1));
 
         isCollapsing = false;
-        activeZone = new DeadZone(new Location(world, cx, 64, cz), initialRadius);
+        activeZone = new DeadZone(new Location(world, cx, 64, cz), initialRadius,
+            plugin.getConfigManager().getZoneHeightMin(),
+            plugin.getConfigManager().getZoneHeightMax());
 
         for (Player p : world.getPlayers()) {
             if (activeZone.isInside(p.getLocation())) {
@@ -148,13 +150,12 @@ public class ZoneManager {
     private void startTasks() {
         long shrinkTicks = (long) activeShrinkInterval * 20L;
         long mobTicks    = (long) activeSpawnInterval  * 20L;
-        long tokenTicks  = (long) plugin.getConfigManager().getTokenRewardInterval() * 20L;
 
         shrinkTask   = Bukkit.getScheduler().runTaskTimer(plugin, this::tickShrink,    shrinkTicks, shrinkTicks);
         mobTask      = Bukkit.getScheduler().runTaskTimer(plugin, this::tickMobs,      mobTicks,    mobTicks);
-        tokenTask    = Bukkit.getScheduler().runTaskTimer(plugin, this::tickTokens,    tokenTicks,  tokenTicks);
         particleTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickParticles, 40L,         40L);
         fireTask     = Bukkit.getScheduler().runTaskTimer(plugin, this::tickFire, activeFireInterval, activeFireInterval);
+        scheduleNextTokenReward();
     }
 
     private void tickShrink() {
@@ -172,8 +173,20 @@ public class ZoneManager {
     }
 
     private void tickMobs()      { if (activeZone != null) plugin.getMobSpawnManager().spawnMobs(activeZone); }
-    private void tickTokens()    { if (activeZone != null) plugin.getTokenRewardManager().rewardPlayers(activeZone); }
     private void tickParticles() { if (activeZone != null) plugin.getParticleManager().drawZoneBorder(activeZone); }
+
+    private void scheduleNextTokenReward() {
+        if (activeZone == null) return;
+        double ratio       = activeZone.getShrinkRatio();
+        int    minInterval = plugin.getConfigManager().getTokenIntervalMin();
+        int    maxInterval = plugin.getConfigManager().getTokenIntervalMax();
+        int    intervalSecs = (int) Math.round(minInterval + (maxInterval - minInterval) * ratio);
+        tokenTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (activeZone == null) return;
+            plugin.getTokenRewardManager().rewardPlayers(activeZone);
+            scheduleNextTokenReward();
+        }, (long) intervalSecs * 20L);
+    }
 
     private void tickFire() {
         if (activeZone == null) return;
@@ -200,15 +213,20 @@ public class ZoneManager {
         }
 
         int explosions = switch (phase) {
-            case AWAKENING    -> 0;
+            case AWAKENING    -> randRange(plugin.getConfigManager().getExplosionsAwakeningMin(),    plugin.getConfigManager().getExplosionsAwakeningMax());
             case INTENSIFYING -> randRange(plugin.getConfigManager().getExplosionsIntensifyingMin(), plugin.getConfigManager().getExplosionsIntensifyingMax());
             case CRITICAL     -> randRange(plugin.getConfigManager().getExplosionsCriticalMin(),     plugin.getConfigManager().getExplosionsCriticalMax());
-            case COLLAPSE     -> 0;
+            case COLLAPSE     -> randRange(plugin.getConfigManager().getExplosionsCollapseMin(),     plugin.getConfigManager().getExplosionsCollapseMax());
         };
 
+        double pwrMin = plugin.getConfigManager().getExplosionPowerMin();
+        double pwrMax = plugin.getConfigManager().getExplosionPowerMax();
         for (int i = 0; i < explosions; i++) {
             Location loc = randomSurfaceInZone(0.7);
-            if (loc != null) world.createExplosion(loc, 2.0f, true, true);
+            if (loc != null) {
+                float power = (float) (pwrMin + random.nextDouble() * (pwrMax - pwrMin));
+                world.createExplosion(loc, power, true, true);
+            }
         }
     }
 
@@ -361,22 +379,18 @@ public class ZoneManager {
         final World    world     = epicentre.getWorld();
 
         if (world != null) {
-            world.createExplosion(epicentre, 10.0f, true, true);
-            for (int i = 0; i < 8; i++) {
-                double a = random.nextDouble() * 2 * Math.PI;
-                double d = 3 + random.nextDouble() * 10;
-                world.strikeLightningEffect(epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a)));
-            }
+            int    count    = randRange(plugin.getConfigManager().getFinaleExplosionsMin(), plugin.getConfigManager().getFinaleExplosionsMax());
+            double pwrMin   = plugin.getConfigManager().getFinaleExplosionPowerMin();
+            double pwrMax   = plugin.getConfigManager().getFinaleExplosionPowerMax();
+            double scatter  = Math.min(30.0, activeZone.getCurrentRadius());
 
-            for (int i = 0; i < 24; i++) {
-                final double a = random.nextDouble() * 2 * Math.PI;
-                final double d = 6 + i * 3.5 + random.nextDouble() * 8;
-                final long   delay = 2L + i * 3L;
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    Location loc = epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a));
-                    world.createExplosion(loc, 4.0f, true, true);
-                    world.strikeLightningEffect(loc);
-                }, delay);
+            for (int i = 0; i < count; i++) {
+                double a   = random.nextDouble() * 2 * Math.PI;
+                double d   = random.nextDouble() * scatter;
+                float  pwr = (float) (pwrMin + random.nextDouble() * (pwrMax - pwrMin));
+                Location loc = epicentre.clone().add(d * Math.cos(a), 0, d * Math.sin(a));
+                world.createExplosion(loc, pwr, true, true);
+                if (random.nextFloat() < 0.5f) world.strikeLightningEffect(loc);
             }
         }
 

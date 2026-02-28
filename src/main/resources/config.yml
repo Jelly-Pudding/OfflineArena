@@ -34,6 +34,11 @@ zone:
   # Open a zone automatically 10 seconds after the plugin loads
   auto-start: true
 
+  # Absolute Y bounds for the zone. Players outside this height range are treated as
+  # outside the zone even if they are within the horizontal radius.
+  height-min: 20
+  height-max: 200
+
 tokens:
   # Tokens per reward tick at full zone size
   base-reward: 1
@@ -41,8 +46,10 @@ tokens:
   # Tokens per reward tick at minimum zone size (scales linearly as zone shrinks)
   max-reward: 2
 
-  # How often players inside receive tokens (seconds)
-  reward-interval: 60
+  # Token reward interval range (seconds). Starts at max when zone opens, decreases
+  # linearly to min as the zone shrinks. Rewards become more frequent as danger increases.
+  reward-interval-min: 60
+  reward-interval-max: 180
 
 mobs:
   # Mobs spawned per cycle when nobody is inside the zone.
@@ -79,11 +86,25 @@ environment:
   fire-collapse-min: 10
   fire-collapse-max: 18
 
-  # Small explosions (power 2) per tick, by phase. Awakening always 0.
+  # Explosions per fire-tick, by phase (random value picked in range each tick)
+  explosions-awakening-min: 0
+  explosions-awakening-max: 1
   explosions-intensifying-min: 0
   explosions-intensifying-max: 2
   explosions-critical-min: 1
   explosions-critical-max: 3
+  explosions-collapse-min: 1
+  explosions-collapse-max: 3
+
+  # Power range for regular tick explosions (random per explosion)
+  explosion-power-min: 1.5
+  explosion-power-max: 3.0
+
+  # Final burst when the zone closes — count and power are each randomised per explosion
+  finale-explosions-min: 6
+  finale-explosions-max: 14
+  finale-explosion-power-min: 3.0
+  finale-explosion-power-max: 6.0
 
 discord:
   # Enable Discord integration

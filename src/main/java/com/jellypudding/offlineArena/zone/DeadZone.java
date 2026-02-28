@@ -14,18 +14,25 @@ public class DeadZone {
     private final double initialRadius;
     private ZonePhase currentPhase;
 
+    private final double heightMin;
+    private final double heightMax;
+
     private final Set<UUID> playersInZone = new HashSet<>();
     private final Set<UUID> zoneMobs      = new HashSet<>();
 
-    public DeadZone(Location center, double initialRadius) {
+    public DeadZone(Location center, double initialRadius, double heightMin, double heightMax) {
         this.center        = center.clone();
         this.currentRadius = initialRadius;
         this.initialRadius = initialRadius;
         this.currentPhase  = ZonePhase.AWAKENING;
+        this.heightMin     = heightMin;
+        this.heightMax     = heightMax;
     }
 
     public boolean isInside(Location loc) {
         if (loc.getWorld() == null || !loc.getWorld().equals(center.getWorld())) return false;
+        double y = loc.getY();
+        if (y < heightMin || y > heightMax) return false;
         double dx = loc.getX() - center.getX();
         double dz = loc.getZ() - center.getZ();
         return (dx * dx + dz * dz) <= (currentRadius * currentRadius);

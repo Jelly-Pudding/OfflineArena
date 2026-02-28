@@ -11,122 +11,149 @@ import org.bukkit.entity.Player;
 
 public class ParticleManager {
 
-    /** Max horizontal distance from the border to receive particles. */
     private static final double MAX_BORDER_DIST = 128.0;
+    private static final double SOUND_DIST      = 30.0;
+    private static final double SPREAD          = 0.3;
 
-    /** Degrees between ring points — 3 degrees = 120 points per ring, very smooth. */
-    private static final int ANGLE_STEP_DEG = 3;
+    private static final int    RING_ANGLE_STEP = 2;
+    private static final int    RING_COUNT      = 360 / RING_ANGLE_STEP; // 180
+    private static final double[] RING_COS      = new double[RING_COUNT];
+    private static final double[] RING_SIN      = new double[RING_COUNT];
 
-    /**
-     * Y offsets relative to player eye level at which rings are drawn.
-     * Dense spacing (4 blocks) over a 28-block span creates a solid wall appearance.
-     */
-    private static final double[] Y_OFFSETS = { -12, -8, -4, 0, 4, 8, 12, 16 };
+    private static final double[] Y_OFFSETS = { -16, -12, -8, -4, 0, 4, 8, 12, 16, 20 };
 
-    /** How much dust particles spread at each point (makes clusters more visible). */
-    private static final double SPREAD = 0.25;
+    private static final int    PILLAR_ANGLE_STEP = 30;
+    private static final int    PILLAR_COUNT      = 360 / PILLAR_ANGLE_STEP; // 12
+    private static final double[] PILLAR_COS      = new double[PILLAR_COUNT];
+    private static final double[] PILLAR_SIN      = new double[PILLAR_COUNT];
 
-    /** Players within this many blocks of the border edge hear the proximity sound. */
-    private static final double SOUND_DIST = 30.0;
+    private static final double PILLAR_Y_START = -30;
+    private static final double PILLAR_Y_END   =  70;
+    private static final double PILLAR_Y_STEP  =   3;
+
+    private static final Particle.DustOptions DUST_AWAKENING    = new Particle.DustOptions(Color.fromRGB(0,   220, 200), 1.5f);
+    private static final Particle.DustOptions DUST_INTENSIFYING = new Particle.DustOptions(Color.fromRGB(255, 210,   0), 2.0f);
+    private static final Particle.DustOptions DUST_CRITICAL     = new Particle.DustOptions(Color.fromRGB(255,  90,   0), 2.5f);
+    private static final Particle.DustOptions DUST_COLLAPSE     = new Particle.DustOptions(Color.fromRGB(255,   0,   0), 3.0f);
+
+    // Pre-compute all trig values once at class load
+    static {
+        for (int i = 0; i < RING_COUNT; i++) {
+            double r = Math.toRadians(i * RING_ANGLE_STEP);
+            RING_COS[i] = Math.cos(r);
+            RING_SIN[i] = Math.sin(r);
+        }
+        for (int i = 0; i < PILLAR_COUNT; i++) {
+            double r = Math.toRadians(i * PILLAR_ANGLE_STEP);
+            PILLAR_COS[i] = Math.cos(r);
+            PILLAR_SIN[i] = Math.sin(r);
+        }
+    }
 
     public ParticleManager() {}
 
     public void drawZoneBorder(DeadZone zone) {
-        Location center = zone.getCenter();
-        double   radius = zone.getCurrentRadius();
-        World    world  = center.getWorld();
+        double radius = zone.getCurrentRadius();
+        World  world  = zone.getCenter().getWorld();
         if (world == null || radius <= 0) return;
 
-        ZonePhase            phase = zone.getCurrentPhase();
-        Particle.DustOptions dust  = dustFor(phase);
+        double    cx    = zone.getCenter().getX();
+        double    cz    = zone.getCenter().getZ();
+        ZonePhase phase = zone.getCurrentPhase();
+        Particle.DustOptions dust = dustFor(phase);
 
         for (Player player : world.getPlayers()) {
-            double dx   = player.getLocation().getX() - center.getX();
-            double dz   = player.getLocation().getZ() - center.getZ();
+            Location playerLoc = player.getLocation();
+            double dx   = playerLoc.getX() - cx;
+            double dz   = playerLoc.getZ() - cz;
             double dist = Math.sqrt(dx * dx + dz * dz);
 
             if (Math.abs(dist - radius) > MAX_BORDER_DIST) continue;
 
-            double eyeY = player.getEyeLocation().getY();
-            for (double yOff : Y_OFFSETS) {
-                drawRingToPlayer(player, center, radius, eyeY + yOff, dust, phase);
-            }
+            double eyeY = playerLoc.getY() + player.getEyeHeight();
 
-            // Proximity ambient sound — grows louder and more ominous the closer you are
+            drawRings(player, world, cx, cz, radius, eyeY, dust, phase);
+            drawPillars(player, world, cx, cz, radius, eyeY, dust, phase);
+
             double borderDist = Math.abs(dist - radius);
             if (borderDist < SOUND_DIST) {
-                float closeness = (float) (1.0 - borderDist / SOUND_DIST); // 0..1, 1 = right on border
-                playProximitySound(player, phase, closeness);
+                float closeness = (float) (1.0 - borderDist / SOUND_DIST);
+                playProximitySound(player, playerLoc, phase, closeness);
             }
         }
     }
 
-    private void drawRingToPlayer(Player player, Location center, double radius,
-                                   double y, Particle.DustOptions dust, ZonePhase phase) {
-        World world = center.getWorld();
-        for (int deg = 0; deg < 360; deg += ANGLE_STEP_DEG) {
-            double rad = Math.toRadians(deg);
-            double x   = center.getX() + radius * Math.cos(rad);
-            double z   = center.getZ() + radius * Math.sin(rad);
-            Location loc = new Location(world, x, y, z);
+    private static void drawRings(Player player, World world,
+                                   double cx, double cz, double radius, double eyeY,
+                                   Particle.DustOptions dust, ZonePhase phase) {
+        boolean flame     = phase == ZonePhase.CRITICAL || phase == ZonePhase.COLLAPSE;
+        boolean soulFlame = phase == ZonePhase.COLLAPSE;
 
-            // Spawn with a small spread so each point looks like a cluster
-            player.spawnParticle(Particle.DUST, loc, 2, SPREAD, SPREAD, SPREAD, 0, dust);
+        Location loc = new Location(world, 0, 0, 0);
 
-            if (phase == ZonePhase.CRITICAL || phase == ZonePhase.COLLAPSE) {
-                if (deg % 9 == 0) {
-                    player.spawnParticle(Particle.FLAME, loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
-                }
-            }
-            if (phase == ZonePhase.COLLAPSE && deg % 12 == 0) {
-                player.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
+        for (double yOff : Y_OFFSETS) {
+            loc.setY(eyeY + yOff);
+            for (int i = 0; i < RING_COUNT; i++) {
+                loc.setX(cx + radius * RING_COS[i]);
+                loc.setZ(cz + radius * RING_SIN[i]);
+
+                player.spawnParticle(Particle.DUST, loc, 2, SPREAD, SPREAD, SPREAD, 0, dust);
+
+                int deg = i * RING_ANGLE_STEP;
+                if (flame     && deg % 8  == 0) player.spawnParticle(Particle.FLAME,          loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
+                if (soulFlame && deg % 10 == 0) player.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 1, SPREAD, SPREAD, SPREAD, 0.01);
             }
         }
     }
 
-    private void playProximitySound(Player player, ZonePhase phase, float closeness) {
-        // Volume scales with closeness; capped so it stays atmospheric rather than loud
-        float volume = 0.1f + closeness * 0.25f;
+    private static void drawPillars(Player player, World world,
+                                     double cx, double cz, double radius, double eyeY,
+                                     Particle.DustOptions dust, ZonePhase phase) {
+        boolean flame     = phase == ZonePhase.CRITICAL || phase == ZonePhase.COLLAPSE;
+        boolean soulFlame = phase == ZonePhase.COLLAPSE;
 
+        Location loc = new Location(world, 0, 0, 0);
+
+        for (int i = 0; i < PILLAR_COUNT; i++) {
+            loc.setX(cx + radius * PILLAR_COS[i]);
+            loc.setZ(cz + radius * PILLAR_SIN[i]);
+
+            for (double yOff = PILLAR_Y_START; yOff <= PILLAR_Y_END; yOff += PILLAR_Y_STEP) {
+                loc.setY(eyeY + yOff);
+
+                player.spawnParticle(Particle.DUST, loc, 1, 0.1, 0.1, 0.1, 0, dust);
+                if (flame)     player.spawnParticle(Particle.FLAME,          loc, 1, 0.05, 0.05, 0.05, 0.005);
+                if (soulFlame) player.spawnParticle(Particle.SOUL_FIRE_FLAME, loc, 1, 0.05, 0.05, 0.05, 0.005);
+            }
+        }
+    }
+
+    private static void playProximitySound(Player player, Location playerLoc,
+                                            ZonePhase phase, float closeness) {
+        float volume = 0.12f + closeness * 0.3f;
         switch (phase) {
-            case AWAKENING -> {
-                // Distant portal hum — eerie but subtle
-                player.playSound(player.getLocation(), Sound.BLOCK_PORTAL_AMBIENT, volume, 0.5f);
-            }
+            case AWAKENING -> player.playSound(playerLoc, Sound.BLOCK_PORTAL_AMBIENT, volume, 0.5f);
             case INTENSIFYING -> {
-                player.playSound(player.getLocation(), Sound.BLOCK_PORTAL_AMBIENT, volume, 0.4f);
-                if (closeness > 0.6f) {
-                    player.playSound(player.getLocation(), Sound.AMBIENT_CAVE, volume * 0.6f, 0.5f);
-                }
+                player.playSound(playerLoc, Sound.BLOCK_PORTAL_AMBIENT, volume, 0.4f);
+                if (closeness > 0.6f) player.playSound(playerLoc, Sound.AMBIENT_CAVE, volume * 0.6f, 0.5f);
             }
             case CRITICAL -> {
-                player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_AMBIENT, volume * 0.8f, 0.6f);
-                if (closeness > 0.6f) {
-                    player.playSound(player.getLocation(), Sound.AMBIENT_CAVE, volume * 0.5f, 0.4f);
-                }
+                player.playSound(playerLoc, Sound.ENTITY_ELDER_GUARDIAN_AMBIENT, volume * 0.7f, 0.45f);
+                if (closeness > 0.5f) player.playSound(playerLoc, Sound.ENTITY_GHAST_AMBIENT, volume * 0.5f, 0.35f);
             }
             case COLLAPSE -> {
-                player.playSound(player.getLocation(), Sound.ENTITY_WITHER_AMBIENT, volume, 0.3f);
-                if (closeness > 0.5f) {
-                    player.playSound(player.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_AMBIENT, volume * 0.5f, 0.3f);
-                }
+                player.playSound(playerLoc, Sound.ENTITY_WITHER_AMBIENT, volume, 0.3f);
+                if (closeness > 0.5f) player.playSound(playerLoc, Sound.ENTITY_ELDER_GUARDIAN_AMBIENT, volume * 0.6f, 0.3f);
             }
         }
     }
 
-    private Particle.DustOptions dustFor(ZonePhase phase) {
-        Color  color = switch (phase) {
-            case AWAKENING    -> Color.fromRGB(0,   220, 200);
-            case INTENSIFYING -> Color.fromRGB(255, 210, 0);
-            case CRITICAL     -> Color.fromRGB(255, 90,  0);
-            case COLLAPSE     -> Color.fromRGB(255, 0,   0);
+    private static Particle.DustOptions dustFor(ZonePhase phase) {
+        return switch (phase) {
+            case AWAKENING    -> DUST_AWAKENING;
+            case INTENSIFYING -> DUST_INTENSIFYING;
+            case CRITICAL     -> DUST_CRITICAL;
+            case COLLAPSE     -> DUST_COLLAPSE;
         };
-        float size = switch (phase) {
-            case AWAKENING    -> 1.5f;
-            case INTENSIFYING -> 2.0f;
-            case CRITICAL     -> 2.5f;
-            case COLLAPSE     -> 3.0f;
-        };
-        return new Particle.DustOptions(color, size);
     }
 }

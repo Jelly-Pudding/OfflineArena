@@ -47,6 +47,11 @@ public class MobSpawnManager {
     }
 
     public void spawnMobs(DeadZone zone) {
+        for (UUID uuid : new java.util.ArrayList<>(zone.getZoneMobs())) {
+            org.bukkit.entity.Entity e = plugin.getServer().getEntity(uuid);
+            if (e == null || !e.isValid()) zone.untrackMob(uuid);
+        }
+
         int maxTotal = plugin.getZoneManager().getActiveMaxMobs();
         if (zone.getMobCount() >= maxTotal) return;
 
@@ -54,10 +59,11 @@ public class MobSpawnManager {
         int capacity  = plugin.getConfigManager().getPlayerCapacity();
         int baseMax   = plugin.getZoneManager().getActiveBaseSpawnCount();
 
-        double occupancy = Math.min(1.0, (double) playersIn / Math.max(1, capacity));
-        int    baseSpawn = (int) Math.max(1, Math.round(baseMax * (1.0 - occupancy * 0.85)));
-        int    toSpawn   = (int) Math.ceil(baseSpawn * zone.getCurrentPhase().getMobPhaseMultiplier());
-        toSpawn          = Math.min(toSpawn, maxTotal - zone.getMobCount());
+        double occupancy    = Math.min(1.0, (double) playersIn / Math.max(1, capacity));
+        int    baseSpawn    = (int) Math.max(1, Math.round(baseMax * (1.0 - occupancy * 0.85)));
+        double radiusBonus  = 1.0 + (zone.getShrinkRatio() * 0.8);
+        int    toSpawn      = (int) Math.ceil(baseSpawn * zone.getCurrentPhase().getMobPhaseMultiplier() * radiusBonus);
+        toSpawn             = Math.min(toSpawn, maxTotal - zone.getMobCount());
 
         for (int i = 0; i < toSpawn; i++) {
             spawnOneMob(zone);
