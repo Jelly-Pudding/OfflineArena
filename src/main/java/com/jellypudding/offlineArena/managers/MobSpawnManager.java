@@ -28,6 +28,8 @@ import org.bukkit.potion.PotionEffectType;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  *   AWAKENING    — The Vagabond / The Lurker / Loot Goblin / The Vagrant
@@ -40,7 +42,8 @@ public class MobSpawnManager {
     private static final NamespacedKey ZONE_MOB_KEY = new NamespacedKey("offlinearena", "dead_zone_mob");
 
     private final OfflineArena plugin;
-    private final Random random = new Random();
+    private final Random    random         = new Random();
+    private final Set<UUID> allSpawnedMobs = new HashSet<>();
 
     public MobSpawnManager(OfflineArena plugin) {
         this.plugin = plugin;
@@ -74,7 +77,8 @@ public class MobSpawnManager {
         double occupancy    = Math.min(1.0, (double) playersIn / Math.max(1, capacity));
         int    baseSpawn    = (int) Math.max(1, Math.round(baseMax * (1.0 - occupancy * 0.85)));
         double radiusBonus  = 1.0 + (zone.getShrinkRatio() * 1.5);
-        int    toSpawn      = (int) Math.ceil(baseSpawn * zone.getCurrentPhase().getMobPhaseMultiplier() * radiusBonus);
+        double phaseMult    = phaseMultiplier(zone.getCurrentPhase());
+        int    toSpawn      = (int) Math.ceil(baseSpawn * phaseMult * radiusBonus);
         toSpawn             = Math.min(toSpawn, maxTotal - zone.getMobCount());
 
         for (int i = 0; i < toSpawn; i++) {
@@ -107,7 +111,9 @@ public class MobSpawnManager {
     }
 
     private void tag(Entity mob, DeadZone zone) {
-        zone.trackMob(mob.getUniqueId());
+        UUID uuid = mob.getUniqueId();
+        zone.trackMob(uuid);
+        allSpawnedMobs.add(uuid);
         mob.getPersistentDataContainer().set(ZONE_MOB_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 
@@ -546,11 +552,21 @@ public class MobSpawnManager {
         return center.clone().add(0, 1, 0);
     }
 
+    private double phaseMultiplier(ZonePhase phase) {
+        return switch (phase) {
+            case AWAKENING    -> plugin.getConfigManager().getPhaseMultiplierAwakening();
+            case INTENSIFYING -> plugin.getConfigManager().getPhaseMultiplierIntensifying();
+            case CRITICAL     -> plugin.getConfigManager().getPhaseMultiplierCritical();
+            case COLLAPSE     -> plugin.getConfigManager().getPhaseMultiplierCollapse();
+        };
+    }
+
     public void clearZoneMobs(DeadZone zone) {
-        for (UUID uuid : zone.getZoneMobs()) {
+        for (UUID uuid : allSpawnedMobs) {
             Entity e = plugin.getServer().getEntity(uuid);
             if (e != null && e.isValid()) e.remove();
         }
+        allSpawnedMobs.clear();
         new ArrayList<>(zone.getZoneMobs()).forEach(zone::untrackMob);
     }
 

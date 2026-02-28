@@ -44,8 +44,12 @@ public class ConfigManager {
     public int getTokenIntervalMax()     { return config.getInt("tokens.reward-interval-max", 180); }
 
     // Mobs
-    public int getBaseSpawnCountMin()   { return config.getInt("mobs.base-spawn-count-min", 12); }
-    public int getBaseSpawnCountMax()   { return config.getInt("mobs.base-spawn-count-max", 16); }
+    public int    getBaseSpawnCountMin()              { return config.getInt("mobs.base-spawn-count-min",    8); }
+    public int    getBaseSpawnCountMax()              { return config.getInt("mobs.base-spawn-count-max",   12); }
+    public double getPhaseMultiplierAwakening()       { return config.getDouble("mobs.phase-multiplier-awakening",    4.0); }
+    public double getPhaseMultiplierIntensifying()    { return config.getDouble("mobs.phase-multiplier-intensifying", 2.5); }
+    public double getPhaseMultiplierCritical()        { return config.getDouble("mobs.phase-multiplier-critical",     1.5); }
+    public double getPhaseMultiplierCollapse()        { return config.getDouble("mobs.phase-multiplier-collapse",     1.0); }
     public int getPlayerCapacity()      { return config.getInt("mobs.player-capacity", 10); }
     public int getMaxTotalMobsMin()     { return config.getInt("mobs.max-total-min", 100); }
     public int getMaxTotalMobsMax()     { return config.getInt("mobs.max-total-max", 140); }

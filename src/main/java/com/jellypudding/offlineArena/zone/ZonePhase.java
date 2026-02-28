@@ -29,16 +29,6 @@ public enum ZonePhase {
         return COLLAPSE;
     }
 
-    /** Scales mob spawn count per cycle. Higher phase = more mobs per cycle. */
-    public double getMobPhaseMultiplier() {
-        return switch (this) {
-            case AWAKENING    -> 1.0;
-            case INTENSIFYING -> 1.8;
-            case CRITICAL     -> 3.0;
-            case COLLAPSE     -> 5.0;
-        };
-    }
-
     public String getDisplayName()       { return displayName; }
     public String getColorCode()         { return colorCode; }
     public NamedTextColor getTextColor() { return textColor; }
