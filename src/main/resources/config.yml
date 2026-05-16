@@ -64,33 +64,33 @@ tokens:
 mobs:
   # Mobs spawned per cycle when nobody is inside the zone.
   # Scales down as players enter; at player-capacity it drops to ~1 per cycle.
-  base-spawn-count-min: 8
-  base-spawn-count-max: 12
+  base-spawn-count-min: 4
+  base-spawn-count-max: 6
 
   # Mobs spawned per cycle multiplier per phase. Earlier phases are larger so they
   # need higher values to keep the zone feeling populated.
-  phase-multiplier-awakening: 8.0
-  phase-multiplier-intensifying: 3.5
-  phase-multiplier-critical: 2.2
-  phase-multiplier-collapse: 1.4
+  phase-multiplier-awakening: 5.0
+  phase-multiplier-intensifying: 1.5
+  phase-multiplier-critical: 1.2
+  phase-multiplier-collapse: 1.1
 
   # The zone is considered "at capacity" at this many players. Mob spawns near-minimal.
   player-capacity: 20
 
   # Hard cap on simultaneous zone mobs (randomised per zone open)
-  max-total-min: 200
-  max-total-max: 300
+  max-total-min: 30
+  max-total-max: 50
 
   # Spawn interval range (seconds) — a random value is chosen when the zone opens
   spawn-interval-min: 8
   spawn-interval-max: 15
 
   # Max simultaneous Withers allowed in the zone during Collapse phase
-  max-withers: 3
+  max-withers: 2
 
   # Chance (0.0-1.0) that any given mob spawn is replaced by a ghost mob named after a banned player.
   # Ghost mobs are tougher and drop a lifesteal heart on death.
-  ghost-spawn-chance: 0.03
+  ghost-spawn-chance: 0.05
 
 environment:
   # How often the fire/explosion tick runs (ticks, 20 ticks = 1 second)

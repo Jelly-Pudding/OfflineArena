@@ -102,7 +102,7 @@ public class MobSpawnManager {
             if (witherCount >= plugin.getConfigManager().getMaxWithers()) {
                 Location loc = randomLocationInZone(zone);
                 if (loc == null) return;
-                String[] fallback = {"WARLORD", "PSYCHOPATH", "BANSHEE"};
+                String[] fallback = {"WARLORD", "PSYCHOPATH", "CONJURER"};
                 Entity mob = buildMob(loc, fallback[random.nextInt(fallback.length)]);
                 if (mob != null) tag(mob, zone);
                 return;

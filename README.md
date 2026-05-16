@@ -1,6 +1,6 @@
 # OfflineArena
 
-A Paper plugin designed for [minecraftoffline.net](https://www.minecraftoffline.net).
+A Paper 26.1.2 plugin designed for [minecraftoffline.net](https://www.minecraftoffline.net).
 
 Spawns a shrinking cylindrical Dead Zone at a random location within a configurable radius of world origin (0, 0). Players inside earn tokens through SimpleVote with rewards scaling up as the zone shrinks. Hostile mob spawns scale inversely with player occupancy so the fewer players inside the more dangerous it gets. Custom named mobs grow progressively harder as the zone shrinks through its phases and the environment fills with fire and explosions. Zone parameters including radius, shrink rate and mob cap are randomised each cycle to give some variety.
 

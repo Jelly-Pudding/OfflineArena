@@ -3,6 +3,7 @@ package com.jellypudding.offlineArena.managers;
 import com.jellypudding.offlineArena.OfflineArena;
 import com.jellypudding.offlineArena.zone.DeadZone;
 import com.jellypudding.offlineArena.zone.ZonePhase;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -14,8 +15,6 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -353,41 +352,62 @@ public class ZoneManager {
     }
 
     private void createBossBar() {
-        zoneBossBar = Bukkit.createBossBar(buildBossBarTitle(), org.bukkit.boss.BarColor.GREEN, BarStyle.SOLID);
-        zoneBossBar.setProgress(1.0);
-        zoneBossBar.setVisible(true);
+        zoneBossBar = BossBar.bossBar(
+            buildBossBarTitle(),
+            1.0f,
+            BossBar.Color.GREEN,
+            BossBar.Overlay.PROGRESS
+        );
+        if (activeZone != null) {
+            for (java.util.UUID uuid : activeZone.getPlayersInZone()) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) p.showBossBar(zoneBossBar);
+            }
+        }
     }
 
     private void updateBossBar() {
         if (zoneBossBar == null || activeZone == null) return;
-        zoneBossBar.setTitle(buildBossBarTitle());
-        zoneBossBar.setColor(activeZone.getCurrentPhase().getBarColor());
-        zoneBossBar.setProgress(Math.max(0.0, Math.min(1.0, activeZone.getShrinkRatio())));
+        zoneBossBar.name(buildBossBarTitle());
+        zoneBossBar.color(adventureBarColor(activeZone.getCurrentPhase()));
+        zoneBossBar.progress((float) Math.max(0.0f, Math.min(1.0f, activeZone.getShrinkRatio())));
     }
 
-    private String buildBossBarTitle() {
-        if (activeZone == null) return "Dead Zone";
-        ZonePhase p = activeZone.getCurrentPhase();
-        String c     = p.getColorCode();
-        String phase = c + "Dead Zone §8| " + c + p.name();
-        if (isCollapsing) return phase + " §8| §cCollapsing";
-        return phase + " §8| " + c + "Shrinks in " + shrinkCountdownSecs + "s";
+    private BossBar.Color adventureBarColor(ZonePhase phase) {
+        return switch (phase) {
+            case AWAKENING    -> BossBar.Color.GREEN;
+            case INTENSIFYING -> BossBar.Color.YELLOW;
+            case CRITICAL, COLLAPSE -> BossBar.Color.RED;
+        };
+    }
+
+    private Component buildBossBarTitle() {
+        if (activeZone == null) return Component.text("Dead Zone");
+        ZonePhase     p   = activeZone.getCurrentPhase();
+        NamedTextColor c  = p.getTextColor();
+        Component sep = Component.text(" | ", NamedTextColor.DARK_GRAY);
+        Component base = Component.text("Dead Zone", c)
+            .append(sep)
+            .append(Component.text(p.name(), c));
+        if (isCollapsing) {
+            return base.append(sep).append(Component.text("Collapsing", NamedTextColor.RED));
+        }
+        return base.append(sep).append(Component.text("Shrinks in " + shrinkCountdownSecs + "s", c));
     }
 
     private void destroyBossBar() {
         if (zoneBossBar != null) {
-            zoneBossBar.removeAll();
-            zoneBossBar.setVisible(false);
+            for (Player p : Bukkit.getOnlinePlayers()) p.hideBossBar(zoneBossBar);
             zoneBossBar = null;
         }
     }
 
     public void addPlayerToBossBar(Player player) {
-        if (zoneBossBar != null) zoneBossBar.addPlayer(player);
+        if (zoneBossBar != null) player.showBossBar(zoneBossBar);
     }
 
     public void removePlayerFromBossBar(Player player) {
-        if (zoneBossBar != null) zoneBossBar.removePlayer(player);
+        if (zoneBossBar != null) player.hideBossBar(zoneBossBar);
     }
 
     private void broadcastZoneOpen() {
@@ -511,9 +531,9 @@ public class ZoneManager {
         return randRange(minMax[0], minMax[1]);
     }
 
-    public DeadZone getActiveZone()          { return activeZone; }
-    public boolean  hasActiveZone()          { return activeZone != null; }
-    public BossBar  getZoneBossBar()         { return zoneBossBar; }
+    public DeadZone       getActiveZone()    { return activeZone; }
+    public boolean        hasActiveZone()   { return activeZone != null; }
+    public BossBar        getZoneBossBar()  { return zoneBossBar; }
     public int      getActiveMaxMobs()       { return activeMaxMobs; }
     public int      getActiveBaseSpawnCount(){ return activeBaseSpawnCount; }
 }

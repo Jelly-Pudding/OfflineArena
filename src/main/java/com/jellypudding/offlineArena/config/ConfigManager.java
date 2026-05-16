@@ -21,7 +21,7 @@ public class ConfigManager {
     // Zone
     public double getOriginX()              { return config.getDouble("zone.origin.x", 0); }
     public double getOriginZ()              { return config.getDouble("zone.origin.z", 0); }
-    public double getSpawnRadius()          { return config.getDouble("zone.spawn-radius", 500); }
+    public double getSpawnRadius()          { return config.getDouble("zone.spawn-radius", 1500); }
     public double getInitialRadiusMin()     { return config.getDouble("zone.initial-radius-min", 100.0); }
     public double getInitialRadiusMax()     { return config.getDouble("zone.initial-radius-max", 200.0); }
     public double getMinRadius()            { return config.getDouble("zone.min-radius", 15.0); }
@@ -51,19 +51,19 @@ public class ConfigManager {
     public int getZoneCloseReward()      { return config.getInt("tokens.zone-close-reward",   4); }
 
     // Mobs
-    public int    getBaseSpawnCountMin()              { return config.getInt("mobs.base-spawn-count-min",    8); }
-    public int    getBaseSpawnCountMax()              { return config.getInt("mobs.base-spawn-count-max",   12); }
-    public double getPhaseMultiplierAwakening()       { return config.getDouble("mobs.phase-multiplier-awakening",    8.0); }
-    public double getPhaseMultiplierIntensifying()    { return config.getDouble("mobs.phase-multiplier-intensifying", 3.5); }
-    public double getPhaseMultiplierCritical()        { return config.getDouble("mobs.phase-multiplier-critical",     2.2); }
-    public double getPhaseMultiplierCollapse()        { return config.getDouble("mobs.phase-multiplier-collapse",     1.4); }
-    public int getPlayerCapacity()      { return config.getInt("mobs.player-capacity", 10); }
-    public int getMaxTotalMobsMin()     { return config.getInt("mobs.max-total-min", 200); }
-    public int getMaxTotalMobsMax()     { return config.getInt("mobs.max-total-max", 300); }
+    public int    getBaseSpawnCountMin()              { return config.getInt("mobs.base-spawn-count-min",    4); }
+    public int    getBaseSpawnCountMax()              { return config.getInt("mobs.base-spawn-count-max",    6); }
+    public double getPhaseMultiplierAwakening()       { return config.getDouble("mobs.phase-multiplier-awakening",    5.0); }
+    public double getPhaseMultiplierIntensifying()    { return config.getDouble("mobs.phase-multiplier-intensifying", 1.5); }
+    public double getPhaseMultiplierCritical()        { return config.getDouble("mobs.phase-multiplier-critical",     1.2); }
+    public double getPhaseMultiplierCollapse()        { return config.getDouble("mobs.phase-multiplier-collapse",     1.1); }
+    public int getPlayerCapacity()      { return config.getInt("mobs.player-capacity", 20); }
+    public int getMaxTotalMobsMin()     { return config.getInt("mobs.max-total-min", 30); }
+    public int getMaxTotalMobsMax()     { return config.getInt("mobs.max-total-max", 50); }
     public int getSpawnIntervalMin()    { return config.getInt("mobs.spawn-interval-min", 8); }
     public int getSpawnIntervalMax()    { return config.getInt("mobs.spawn-interval-max", 15); }
-    public int    getMaxWithers()         { return config.getInt("mobs.max-withers", 3); }
-    public double getGhostSpawnChance()   { return config.getDouble("mobs.ghost-spawn-chance", 0.03); }
+    public int    getMaxWithers()         { return config.getInt("mobs.max-withers", 2); }
+    public double getGhostSpawnChance()   { return config.getDouble("mobs.ghost-spawn-chance", 0.05); }
 
     // Environment
     public int getFireIntervalMin()               { return config.getInt("environment.fire-interval-min", 200); }
